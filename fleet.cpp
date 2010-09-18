@@ -24,6 +24,13 @@ Fleet::Fleet(const Order& order) :
 {
 }
 
+Fleet::Fleet(const Player* owner, uint sc):
+  owner_m(owner),
+  shipsCount_m(sc)
+{
+}
+
+
 const Player* Fleet::owner() const
 {
     return owner_m;

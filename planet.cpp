@@ -1,7 +1,9 @@
 #include "planet.h"
 
+#include <map>
 #include "comparator.h"
 #include "fleet.h"
+#include "player.h"
 
 
 Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner) :
@@ -81,10 +83,43 @@ int Planet::distance(Planet* p)
 }
 
 
-Planet* Planet::inFuture(int t)
+Planet Planet::inFuture(int t)
 {
-  //STUB
-  return this;
+  Planet p(*this);
+  for(int i(0);i!=t+1;i++){
+    if(!p.owner_m->isNeutral()){
+      p.shipsCount_m += p.growthRate_m;
+    }
+    std::map<const Player*,int> participants;
+    participants[p.owner_m] = p.shipsCount_m;
+    for (Fleets::iterator it = incomingFleets_m.begin(); it != incomingFleets_m.end(); ++it ) {
+      Fleet* f = *it;
+      if (f->turnsRemaining() == i ) {
+        participants[f->owner()] += f->shipsCount();
+      }
+    }
+
+    Fleet winner(0, 0);
+    Fleet second(0, 0);
+    for (std::map<const Player*,int>::iterator f = participants.begin(); f != participants.end(); ++f) {
+      if (f->second > second.shipsCount()) {
+        if(f->second > winner.shipsCount()) {
+          second = winner;
+          winner = Fleet(f->first, f->second);
+        } else {
+          second = Fleet(f->first, f->second);
+        }
+      }
+    }
+ 
+    if (winner.shipsCount() > second.shipsCount()) {
+      p.shipsCount_m = winner.shipsCount() - second.shipsCount();
+      p.owner_m = winner.owner();
+    } else {
+      p.shipsCount_m = 0;
+    }
+  }
+  return p;
 }
 
 //if the planet is conquered NOW, how long will it take to pay off? Meant to be used on future versions of the planet.

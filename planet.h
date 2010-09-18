@@ -10,7 +10,7 @@ public:
     // Initializes a planet.
     Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner);
 
-    Planet* inFuture(int t);
+    Planet inFuture(int t);
 
 
     uint planetID() const;

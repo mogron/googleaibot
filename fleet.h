@@ -8,6 +8,7 @@ class Fleet {
 public:
     Fleet(const Player* owner, const Planet* sourcePlanet, const Planet* destinationPlanet, uint shipsCount, uint tripLength, uint turnsRemaining);
     Fleet(const Order& order);
+    Fleet(const Player* owner, uint sc);
 
     const Player* owner() const;
     uint shipsCount() const;
