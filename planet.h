@@ -10,7 +10,7 @@ public:
     // Initializes a planet.
     Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner);
 
-    Planet inFuture();
+    Planet* inFuture(int t);
 
 
     uint planetID() const;
@@ -22,6 +22,8 @@ public:
 
     Planets closestPlanets();
 
+    int distance(Planet* p);
+    int timeToPayoff();
 private:
     void update(const Player* owner, uint shipsCount);
     void setOtherPlanets(const Planets& planets);

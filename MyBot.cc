@@ -16,20 +16,29 @@ MyBot::MyBot(Game* game) :
 
 void MyBot::executeTurn()
 {
+  const int turnLimit = 200;
+  const std::vector<Planet*> planets = game->planets();
   const std::vector<Planet*> myPlanets = game->myPlanets();
   const std::vector<Planet*> notMyPlanets = game->notMyPlanets();
     
-  for(std::vector<Planet*>::const_iterator p = myPlanets.begin(); p != myPlanets.end(); ++p)
-      {
-        Planet* sourcePlanet = *p;
-        std::vector<Planet*> targets = sourcePlanet->closestPlanets();
-        for(std::vector<Planet*>::const_iterator p2 = targets.begin(); p2 != targets.end();++p2){
-          Planet* destinationPlanet = *p2;
-          if(!destinationPlanet->owner()->isMe()){
-        Order order = Order(sourcePlanet, destinationPlanet, sourcePlanet->shipsCount());
-        game->issueOrder(order);
-        break;
-          }
-        }
+  for(std::vector<Planet*>::const_iterator p = myPlanets.begin(); p != myPlanets.end(); ++p){
+    int minPayoffTime = turnLimit;
+    Planet* minPayoffPlanet; 
+    Planet* sourcePlanet = *p;
+    std::vector<Planet*> targets = notMyPlanets;
+    for(std::vector<Planet*>::const_iterator p2 = targets.begin(); p2 != targets.end();++p2){
+      Planet* destinationPlanet = *p2;
+      int dist = sourcePlanet->distance(destinationPlanet);
+      Planet* futureDestinationPlanet = destinationPlanet->inFuture(dist);
+      int payoffTime = futureDestinationPlanet->timeToPayoff() + dist;
+      if(!futureDestinationPlanet->owner()->isMe() && futureDestinationPlanet->shipsCount() < sourcePlanet->shipsCount() && payoffTime < minPayoffTime){
+        minPayoffTime = payoffTime;
+        minPayoffPlanet = destinationPlanet;
       }
+    }
+    if(minPayoffTime < turnLimit){
+      Order order = Order(sourcePlanet, minPayoffPlanet, sourcePlanet->shipsCount());
+      game->issueOrder(order);
+    }
+  }
 }

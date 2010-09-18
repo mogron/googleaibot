@@ -3,6 +3,7 @@
 #include "comparator.h"
 #include "fleet.h"
 
+
 Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner) :
     planetID_m(planetID),
     shipsCount_m(shipsCount),
@@ -72,4 +73,26 @@ void Planet::clearFleets()
 {
     leavingFleets_m.clear();
     incomingFleets_m.clear();
+}
+
+int Planet::distance(Planet* p)
+{
+  return Point::distanceBetween(coordinate(),p->coordinate());
+}
+
+
+Planet* Planet::inFuture(int t)
+{
+  //STUB
+  return this;
+}
+
+//if the planet is conquered NOW, how long will it take to pay off? Meant to be used on future versions of the planet.
+int Planet::timeToPayoff()
+{
+  if (growthRate() == 0){
+    return 1000;
+  }
+  int payoff_time = shipsCount() / growthRate();
+  return payoff_time;
 }
