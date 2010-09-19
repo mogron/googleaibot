@@ -86,7 +86,7 @@ int Planet::distance(Planet* p)
 Planet Planet::inFuture(int t)
 {
   Planet p(*this);
-  for(int i(0);i!=t+1;i++){
+  for(int i(1);i!=t+1;i++){
     if(!p.owner_m->isNeutral()){
       p.shipsCount_m += p.growthRate_m;
     }
@@ -122,12 +122,16 @@ Planet Planet::inFuture(int t)
   return p;
 }
 
-//if the planet is conquered NOW, how long will it take to pay off? Meant to be used on future versions of the planet.
+//if the planet is conquered NOW, how long will it take to pay back lost ships + 20 ships? Meant to be used on future versions of the planet.
 int Planet::timeToPayoff()
 {
   if (growthRate() == 0){
     return 1000;
   }
-  int payoff_time = shipsCount() / growthRate();
+  int debt = 60;
+  if(!owner_m->isEnemy()){
+    debt += shipsCount_m;
+  }
+  int payoff_time = debt / growthRate();
   return payoff_time;
 }

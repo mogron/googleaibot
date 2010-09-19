@@ -22,10 +22,10 @@ void MyBot::executeTurn()
   const std::vector<Planet*> notMyPlanets = game->notMyPlanets();
     
   for(std::vector<Planet*>::const_iterator p = myPlanets.begin(); p != myPlanets.end(); ++p){
+    Planet* sourcePlanet = *p;
     int minPayoffTime = turnLimit;
     Planet* minPayoffPlanet; 
     int minShipsNeeded;
-    Planet* sourcePlanet = *p;
     std::vector<Planet*> targets = notMyPlanets;
     for(std::vector<Planet*>::const_iterator p2 = targets.begin(); p2 != targets.end();++p2){
       Planet* destinationPlanet = *p2;
