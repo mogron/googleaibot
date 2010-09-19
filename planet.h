@@ -19,7 +19,6 @@ public:
     const Player* owner() const;
 
     Point coordinate() const;
-
     Planets closestPlanets();
     
     std::vector<Planet> predictions_m;
