@@ -82,10 +82,16 @@ int Planet::distance(Planet* p)
   return Point::distanceBetween(coordinate(),p->coordinate());
 }
 
-
-Planet Planet::inFuture(int t)
+std::vector<Planet> Planet::getPredictions()
 {
+  return predictions_m;
+}
+
+void Planet::updateFuture(int t)
+{
+  predictions_m.clear();
   Planet p(*this);
+  predictions_m.push_back(p);
   for(int i(1);i!=t+1;i++){
     if(!p.owner_m->isNeutral()){
       p.shipsCount_m += p.growthRate_m;
@@ -118,8 +124,8 @@ Planet Planet::inFuture(int t)
     } else {
       p.shipsCount_m = 0;
     }
+    predictions_m.push_back(p);
   }
-  return p;
 }
 
 //if the planet is conquered NOW, how long will it take to pay back lost ships + 20 ships? Meant to be used on future versions of the planet.
