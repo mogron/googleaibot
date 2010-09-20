@@ -18,10 +18,12 @@ public:
     uint growthRate() const;
     const Player* owner() const;
 
+
     Point coordinate() const;
     Planets closestPlanets();
     
     std::vector<Planet> predictions_m;
+    int shipsAvailable();
     int distance(Planet* p);
     int timeToPayoff();
 private:

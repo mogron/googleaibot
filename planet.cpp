@@ -1,10 +1,12 @@
 #include "planet.h"
 
 #include <map>
+#include <algorithm>
 #include "comparator.h"
 #include "fleet.h"
 #include "player.h"
 
+using std::min;
 
 Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner) :
     planetID_m(planetID),
@@ -140,4 +142,19 @@ int Planet::timeToPayoff()
   }
   int payoff_time = debt / growthRate();
   return payoff_time;
+}
+
+
+int Planet::shipsAvailable()
+{
+  int available = 100000;
+  for(std::vector<Planet>::const_iterator pit = predictions_m.begin(); pit != predictions_m.end(); ++pit){
+    int sc = pit->shipsCount();
+    if(pit->owner()->isMe()){
+      available = min(available,sc);
+    } else {
+      available = min(available, -sc);
+    }
+    }
+  return available;
 }
