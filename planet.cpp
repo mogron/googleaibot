@@ -197,4 +197,21 @@ Planet* Planet::nearestFrontierPlanet()
   }
   return this;
 }
-  
+
+int Planet::distanceToFrontier()
+{
+  return distance(nearestFrontierPlanet());
+}
+
+Planet* Planet::nextPlanetCloserToFrontier()
+{
+  if (isFrontier())
+    return this;                
+  int dist = distanceToFrontier();
+  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
+    Planet* p = *pit;
+    if(p->owner()->isMe() && p->distanceToFrontier()<dist)
+      return p;
+  }
+  return this;
+}

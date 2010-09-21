@@ -81,7 +81,7 @@ void MyBot::executeTurn()
       Order order = Order(sourcePlanet, minPayoffPlanet,maxShipsAvailable);
       game->issueOrder(order);
     } else if(!sourcePlanet->isFrontier()){
-      Order order = Order(sourcePlanet, sourcePlanet->nearestFrontierPlanet(), maxShipsAvailable/2);
+      Order order = Order(sourcePlanet, sourcePlanet->nextPlanetCloserToFrontier(), maxShipsAvailable/2);
       game->issueOrder(order);
     }
   }

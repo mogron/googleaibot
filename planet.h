@@ -26,6 +26,8 @@ public:
     bool isFrontier();
     void updateFrontierStatus();
     Planet* nearestFrontierPlanet();
+    int distanceToFrontier();
+    Planet* nextPlanetCloserToFrontier();
     std::vector<Planet> predictions_m;
     int shipsAvailable();
     int distance(Planet* p);
