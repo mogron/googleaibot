@@ -158,3 +158,41 @@ int Planet::shipsAvailable()
     }
   return available;
 }
+
+void Planet::updateFrontierStatus()
+{
+  frontier_m = false;
+  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
+    Planet* p = *pit;
+    Planets p_closest = p->closestPlanets();
+    for(Planets::iterator pit2 = p_closest.begin(); pit2 != p_closest.end(); ++pit2){
+      Planet* p2 = *pit2;
+      if (p2->planetID() == planetID_m){
+        frontier_m = true;
+        return;
+      }
+      if (p2->owner()->isMe()){
+        frontier_m = false;
+        return;
+      }
+    }
+  }
+}
+
+bool Planet::isFrontier()
+{
+  return frontier_m;
+}
+
+Planet* Planet::nearestFrontierPlanet()
+{
+  if (frontier_m)
+    return this;
+  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
+    Planet* p = *pit;
+    if (p->owner()->isMe() && p->isFrontier())
+      return p;
+  }
+  return this;
+}
+  

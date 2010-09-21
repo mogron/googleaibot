@@ -50,6 +50,7 @@ void MyBot::executeTurn()
   for(vector<Planet*>::const_iterator pit = planets.begin();pit!=planets.end();++pit){
     Planet* p = *pit;
     p->updateFuture(lookahead);
+    p->updateFrontierStatus();
   }
 
 
@@ -78,6 +79,9 @@ void MyBot::executeTurn()
     }
     if(minPayoffTime < turnLimit){
       Order order = Order(sourcePlanet, minPayoffPlanet,maxShipsAvailable);
+      game->issueOrder(order);
+    } else if(!sourcePlanet->isFrontier()){
+      Order order = Order(sourcePlanet, sourcePlanet->nearestFrontierPlanet(), maxShipsAvailable/2);
       game->issueOrder(order);
     }
   }

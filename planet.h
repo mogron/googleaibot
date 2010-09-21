@@ -21,7 +21,11 @@ public:
 
     Point coordinate() const;
     Planets closestPlanets();
-    
+
+    bool frontier_m;
+    bool isFrontier();
+    void updateFrontierStatus();
+    Planet* nearestFrontierPlanet();
     std::vector<Planet> predictions_m;
     int shipsAvailable();
     int distance(Planet* p);
