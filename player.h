@@ -19,6 +19,8 @@ public:
     bool operator == (const Player& player) const;
     bool operator != (const Player& player) const;
 
+    int shipsCount();
+    int growthRate();
 private:
     uint playerID() const;
     void addPlanet(Planet* planet);

@@ -19,6 +19,7 @@ public:
     uint turn() const;
 
     const Player* playerByID(uint playerID) const;
+    Player* playerByID(uint playerID);
 
     Planets const& planets() const;
     Planets myPlanets() const;
@@ -44,7 +45,7 @@ private:
     void clearPlanetsFleets();
     void clearPlayersPlanets();
 
-    Player* playerByID(uint playerID);
+
 
     uint turn_m;
     uint planetsCount_m;

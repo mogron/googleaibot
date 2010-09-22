@@ -1,3 +1,6 @@
+#include "defines.h"
+#include "planet.h"
+#include "fleet.h"
 #include "player.h"
 
 Player::Player(uint playerID) :
@@ -68,4 +71,27 @@ bool Player::operator == (const Player& player) const
 bool Player::operator != (const Player& player) const
 {
     return playerID_m != player.playerID();
+}
+
+int Player::shipsCount()
+{
+  int sc = 0;
+  for (Planets::iterator pit = planets_m.begin(); pit != planets_m.end(); ++pit){
+    Planet* p = *pit;
+    sc += p->shipsCount();
+  }
+  for (Fleets::iterator fit = fleets_m.begin(); fit != fleets_m.end(); ++fit){
+    Fleet* f = *fit;
+    sc += f->shipsCount();
+  }
+  return sc;
+}
+
+int Player::growthRate(){
+  int gr = 0;
+  for (Planets::iterator pit = planets_m.begin(); pit != planets_m.end(); ++pit){
+    Planet* p = *pit;
+    gr += p->growthRate();
+  }
+  return gr;
 }
