@@ -57,37 +57,44 @@ void MyBot::executeTurn()
     p->updateFrontierStatus();
   }
 
+  const int maxactions = 3;
+  
+  for(int actions(0); actions != maxactions; ++actions){
+    for(vector<Planet*>::const_iterator p = myPlanets.begin(); p != myPlanets.end(); ++p){
+      Planet* sourcePlanet = *p;
+      
+      int minPayoffTime = turnLimit;
+      Planet* minPayoffPlanet; 
+      int minShipsNeeded;
 
-  for(vector<Planet*>::const_iterator p = myPlanets.begin(); p != myPlanets.end(); ++p){
-    Planet* sourcePlanet = *p;
-
-    int minPayoffTime = turnLimit;
-    Planet* minPayoffPlanet; 
-    int minShipsNeeded;
-
-    int maxShipsAvailable = sourcePlanet->shipsAvailable();
-    if (maxShipsAvailable < 0){
-      maxShipsAvailable = sourcePlanet->shipsCount();
-    }
-    vector<Planet*> targets = planets;
-    for(vector<Planet*>::const_iterator p2 = targets.begin(); p2 != targets.end();++p2){
-      Planet* destinationPlanet = *p2;
-      int dist = sourcePlanet->distance(destinationPlanet);
-      Planet futureDestinationPlanet = destinationPlanet->getPredictions()[dist];
-      int payoffTime = futureDestinationPlanet.timeToPayoff() + dist;
-      bool valid = !futureDestinationPlanet.owner()->isMe() && futureDestinationPlanet.shipsCount() + 1 < maxShipsAvailable && payoffTime < minPayoffTime && !(futureDestinationPlanet.owner()->isNeutral() && me_sc < enemy_sc ) ;
-      if(valid){
-        minPayoffTime = payoffTime;
-        minPayoffPlanet = destinationPlanet;
-        minShipsNeeded = futureDestinationPlanet.shipsCount()+1;
+      int maxShipsAvailable = sourcePlanet->shipsAvailable();
+      if (maxShipsAvailable < 0){
+        maxShipsAvailable = sourcePlanet->shipsCount();
       }
-    }
-    if(minPayoffTime < turnLimit){
-      Order order = Order(sourcePlanet, minPayoffPlanet,maxShipsAvailable);
-      game->issueOrder(order);
-    } else if(!sourcePlanet->isFrontier()){
-      Order order = Order(sourcePlanet, sourcePlanet->nextPlanetCloserToFrontier(), maxShipsAvailable/2);
-      game->issueOrder(order);
+      vector<Planet*> targets = planets;
+      for(vector<Planet*>::const_iterator p2 = targets.begin(); p2 != targets.end();++p2){
+        Planet* destinationPlanet = *p2;
+        int dist = sourcePlanet->distance(destinationPlanet);
+        Planet futureDestinationPlanet = destinationPlanet->getPredictions()[dist];
+        int payoffTime = futureDestinationPlanet.timeToPayoff() + dist;
+        bool valid = !futureDestinationPlanet.owner()->isMe() && futureDestinationPlanet.shipsCount() + 1 < maxShipsAvailable && payoffTime < minPayoffTime && !(futureDestinationPlanet.owner()->isNeutral() && me_sc < enemy_sc ) ;
+        if(valid){
+          minPayoffTime = payoffTime;
+          minPayoffPlanet = destinationPlanet;
+          minShipsNeeded = futureDestinationPlanet.shipsCount()+1;
+        }
+      }
+      if(minPayoffTime < turnLimit){
+        Order order = Order(sourcePlanet, minPayoffPlanet,maxShipsAvailable);
+        sourcePlanet->updateFuture(lookahead);
+        minPayoffPlanet->updateFuture(lookahead);
+        game->issueOrder(order);
+      } else if(!sourcePlanet->isFrontier()){
+        Order order = Order(sourcePlanet, sourcePlanet->nextPlanetCloserToFrontier(), maxShipsAvailable/2);
+        sourcePlanet->updateFuture(lookahead);
+        sourcePlanet->nextPlanetCloserToFrontier()->updateFuture(lookahead);
+        game->issueOrder(order);
+      }
     }
   }
 }
