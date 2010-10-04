@@ -86,14 +86,14 @@ void MyBot::executeTurn()
       }
       if(minPayoffTime < turnLimit){
         Order order = Order(sourcePlanet, minPayoffPlanet,maxShipsAvailable);
+        game->issueOrder(order);
         sourcePlanet->updateFuture(lookahead);
         minPayoffPlanet->updateFuture(lookahead);
-        game->issueOrder(order);
       } else if(!sourcePlanet->isFrontier()){
         Order order = Order(sourcePlanet, sourcePlanet->nextPlanetCloserToFrontier(), maxShipsAvailable/2);
+        game->issueOrder(order);
         sourcePlanet->updateFuture(lookahead);
         sourcePlanet->nextPlanetCloserToFrontier()->updateFuture(lookahead);
-        game->issueOrder(order);
       }
     }
   }
