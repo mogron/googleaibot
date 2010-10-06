@@ -10,6 +10,7 @@
 #include "player.h"
 
 using std::min;
+using std::max;
 using std::vector;
 
 
@@ -35,6 +36,49 @@ void MyBot::initialize(){
   }
 }
 
+Planets MyBot::knapsack01(Planets planets, int maxWeight) {
+  vector<int> weights;
+  vector<int> values;
+
+  // solve 0-1 knapsack problem 
+  for (Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit) {
+    Planet* p = *pit;
+    // here weights and values are numShips and growthRate respectively
+    // you can change this to something more complex if you like...
+    weights.push_back(p->shipsCount()+1);
+    values.push_back(p->growthRate()*(myStartingPlanet->distance(enemyStartingPlanet)-p->distance(myStartingPlanet)));
+  }
+
+  int K[weights.size()+1][maxWeight];
+
+  for (int i = 0; i < maxWeight; i++) {
+    K[0][i] = 0;
+  }
+  for (int k = 1; k <= weights.size(); k++) {
+    for (int y = 1; y <= maxWeight; y++) {
+      if (y < weights[k-1]){
+        K[k][y-1] = K[k-1][y-1];
+      }else if (y > weights[k-1]) {
+        K[k][y-1] = max(K[k-1][y-1], K[k-1][y-1-weights[k-1]] + values[k-1]);
+      } else {K[k][y-1] = max(K[k-1][y-1], values[k-1]);}
+    }
+  }
+
+  // get the planets in the solution
+  int i = weights.size();
+  int currentW = maxWeight-1;
+  Planets markedPlanets;
+
+  while ((i > 0) && (currentW >= 0)) {
+    if (((i == 0) && (K[i][currentW] > 0)) || (K[i][currentW] != K[i-1][currentW])) {
+      markedPlanets.push_back(planets[i-1]);
+      currentW = currentW - weights[i-1];
+    }
+    i--;
+  }
+  return markedPlanets;
+}
+
 
 
 void MyBot::executeTurn()
@@ -48,14 +92,38 @@ void MyBot::executeTurn()
   int enemy_sc = enemy->shipsCount();
   int me_sc = me->shipsCount();
   const int lookahead = max_distance_between_planets;
-  const vector<Planet*> planets = game->planets();
-  const vector<Planet*> myPlanets = game->myPlanets();
-  const vector<Planet*> notMyPlanets = game->notMyPlanets();
+  const Planets planets = game->planets();
+  const Planets myPlanets = game->myPlanets();
+  const Planets notMyPlanets = game->notMyPlanets();
+  const Planets enemyPlanets = game->enemyPlanets(); 
   for(vector<Planet*>::const_iterator pit = planets.begin();pit!=planets.end();++pit){
     Planet* p = *pit;
     p->updateFuture(lookahead);
     p->updateFrontierStatus();
   }
+
+  if(game->turn() == 1){
+    myStartingPlanet = myPlanets[0];
+    enemyStartingPlanet = enemyPlanets[0];
+    Planets candidates;
+    for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit){
+      Planet* p = *pit;
+      if(p->distance(myStartingPlanet) < p->distance(enemyStartingPlanet)){
+        candidates.push_back(p);
+      }
+    }
+    
+    int shipsAvailable = min(myStartingPlanet->shipsCount(), myStartingPlanet->growthRate() * myStartingPlanet->distance(enemyStartingPlanet));
+      
+    Planets targets = knapsack01(candidates,shipsAvailable);
+    for(Planets::const_iterator pit = targets.begin(); pit != targets.end(); ++pit){
+      Planet* p = *pit;
+      Order o(myStartingPlanet, p, p->shipsCount()+1);
+      game->issueOrder(o);
+    }
+    return;
+  }
+    
 
   const int maxactions = 3;
   
