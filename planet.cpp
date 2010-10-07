@@ -2,11 +2,13 @@
 
 #include <map>
 #include <algorithm>
+#include <vector>
 #include "comparator.h"
 #include "fleet.h"
 #include "player.h"
 
 using std::min;
+using std::vector;
 
 Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner) :
     planetID_m(planetID),
@@ -84,16 +86,18 @@ int Planet::distance(Planet* p)
   return Point::distanceBetween(coordinate(),p->coordinate());
 }
 
-std::vector<Planet> Planet::getPredictions()
+
+vector<Planet> Planet::getPredictions(int t)
 {
-  return predictions_m;
+  Fleets fs;
+  return getPredictions(t, fs);
 }
 
-void Planet::updateFuture(int t)
+vector <Planet> Planet::getPredictions(int t, Fleets fs)
 {
-  predictions_m.clear();
+  vector<Planet> predictions;
   Planet p(*this);
-  predictions_m.push_back(p);
+  predictions.push_back(p);
   for(int i(1);i!=t+1;i++){
     if(!p.owner_m->isNeutral()){
       p.shipsCount_m += p.growthRate_m;
@@ -106,6 +110,15 @@ void Planet::updateFuture(int t)
         participants[f->owner()] += f->shipsCount();
       }
     }
+
+    for (Fleets::iterator it = fs.begin(); it != fs.end(); ++it ) {
+      Fleet* f = *it;
+      if (f->turnsRemaining() == i ) {
+        participants[f->owner()] += f->shipsCount();
+      }
+    }
+    
+    
 
     Fleet winner(0, 0);
     Fleet second(0, 0);
@@ -126,8 +139,9 @@ void Planet::updateFuture(int t)
     } else {
       p.shipsCount_m = 0;
     }
-    predictions_m.push_back(p);
+    predictions.push_back(p);
   }
+  return predictions;
 }
 
 //if the planet is conquered NOW, how long will it take to pay back lost ships + 20 ships? Meant to be used on future versions of the planet.
@@ -145,10 +159,10 @@ int Planet::timeToPayoff()
 }
 
 
-int Planet::shipsAvailable()
+int Planet::shipsAvailable(vector<Planet> predictions)
 {
   int available = 100000;
-  for(std::vector<Planet>::const_iterator pit = predictions_m.begin(); pit != predictions_m.end(); ++pit){
+  for(std::vector<Planet>::const_iterator pit = predictions.begin(); pit != predictions.end(); ++pit){
     int sc = pit->shipsCount();
     if(pit->owner()->isMe()){
       available = min(available,sc);

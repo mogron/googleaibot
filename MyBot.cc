@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <algorithm>
-
+#include <map>
 
 #include "order.h"
 #include "planet.h"
@@ -12,7 +12,7 @@
 using std::min;
 using std::max;
 using std::vector;
-
+using std::map;
 
 MyBot::MyBot(Game* game) :
     AbstractBot(game)
@@ -96,9 +96,10 @@ void MyBot::executeTurn()
   const Planets myPlanets = game->myPlanets();
   const Planets notMyPlanets = game->notMyPlanets();
   const Planets enemyPlanets = game->enemyPlanets(); 
+  map<Planet*, vector<Planet > > predictions;
   for(vector<Planet*>::const_iterator pit = planets.begin();pit!=planets.end();++pit){
     Planet* p = *pit;
-    p->updateFuture(lookahead);
+    predictions[p] = p->getPredictions(lookahead);
     p->updateFrontierStatus();
   }
 
@@ -135,7 +136,7 @@ void MyBot::executeTurn()
       Planet* minPayoffPlanet; 
       int minShipsNeeded;
 
-      int maxShipsAvailable = sourcePlanet->shipsAvailable();
+      int maxShipsAvailable = sourcePlanet->shipsAvailable(predictions[sourcePlanet]);
       if (maxShipsAvailable < 0){
         maxShipsAvailable = sourcePlanet->shipsCount();
       }
@@ -143,7 +144,7 @@ void MyBot::executeTurn()
       for(vector<Planet*>::const_iterator p2 = targets.begin(); p2 != targets.end();++p2){
         Planet* destinationPlanet = *p2;
         int dist = sourcePlanet->distance(destinationPlanet);
-        Planet futureDestinationPlanet = destinationPlanet->getPredictions()[dist];
+        Planet futureDestinationPlanet = predictions[destinationPlanet][dist];
         int payoffTime = futureDestinationPlanet.timeToPayoff() + dist;
         bool valid = !futureDestinationPlanet.owner()->isMe() && futureDestinationPlanet.shipsCount() + 1 < maxShipsAvailable && payoffTime < minPayoffTime && !(futureDestinationPlanet.owner()->isNeutral() && me_sc < enemy_sc ) ;
         if(valid){
@@ -155,13 +156,13 @@ void MyBot::executeTurn()
       if(minPayoffTime < turnLimit){
         Order order = Order(sourcePlanet, minPayoffPlanet,maxShipsAvailable);
         game->issueOrder(order);
-        sourcePlanet->updateFuture(lookahead);
-        minPayoffPlanet->updateFuture(lookahead);
+        predictions[sourcePlanet] = sourcePlanet->getPredictions(lookahead);
+        predictions[minPayoffPlanet] = sourcePlanet->getPredictions(lookahead);
       } else if(!sourcePlanet->isFrontier()){
         Order order = Order(sourcePlanet, sourcePlanet->nextPlanetCloserToFrontier(), maxShipsAvailable/2);
         game->issueOrder(order);
-        sourcePlanet->updateFuture(lookahead);
-        sourcePlanet->nextPlanetCloserToFrontier()->updateFuture(lookahead);
+        predictions[sourcePlanet] = sourcePlanet->getPredictions(lookahead);
+        predictions[sourcePlanet->nextPlanetCloserToFrontier()] = sourcePlanet->nextPlanetCloserToFrontier()->getPredictions(lookahead);
       }
     }
   }

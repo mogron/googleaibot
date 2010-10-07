@@ -10,9 +10,8 @@ public:
     // Initializes a planet.
     Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner);
 
-    void updateFuture(int t);
-
-    std::vector<Planet> getPredictions();
+    std::vector<Planet> getPredictions(int t, Fleets fs);
+    std::vector<Planet> getPredictions(int t);
     uint planetID() const;
     uint shipsCount() const;
     uint growthRate() const;
@@ -28,8 +27,7 @@ public:
     Planet* nearestFrontierPlanet();
     int distanceToFrontier();
     Planet* nextPlanetCloserToFrontier();
-    std::vector<Planet> predictions_m;
-    int shipsAvailable();
+    int shipsAvailable(std::vector<Planet>);
     int distance(Planet* p);
     int timeToPayoff();
 private:
