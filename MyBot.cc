@@ -146,7 +146,7 @@ void MyBot::executeTurn()
         int dist = sourcePlanet->distance(destinationPlanet);
         Planet futureDestinationPlanet = predictions[destinationPlanet][dist];
         int payoffTime = futureDestinationPlanet.timeToPayoff() + dist;
-        bool valid = !futureDestinationPlanet.owner()->isMe() && futureDestinationPlanet.shipsCount() + 1 < maxShipsAvailable && payoffTime < minPayoffTime && !(futureDestinationPlanet.owner()->isNeutral() && me_sc < enemy_sc ) ;
+        bool valid = !futureDestinationPlanet.owner()->isMe() && futureDestinationPlanet.shipsCount() + 1 < maxShipsAvailable && payoffTime < minPayoffTime && !(futureDestinationPlanet.owner()->isNeutral() && me_sc < enemy_sc ) && !(futureDestinationPlanet.owner()->isEnemy() && predictions[destinationPlanet][dist-1].owner()->isNeutral()) ;
         if(valid){
           minPayoffTime = payoffTime;
           minPayoffPlanet = destinationPlanet;
