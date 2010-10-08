@@ -13,6 +13,7 @@ Order::Order(Planet* sourcePlanet, Planet* destinationPlanet, uint shipsCount) :
 {
 }
 
+
 bool Order::isValid() const
 {
     return ((sourcePlanet->planetID() != destinationPlanet->planetID()) // Source can not be equal to destination

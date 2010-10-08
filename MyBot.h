@@ -2,6 +2,7 @@
 #define MINIBOT_H
 
 #include "abstractbot.h"
+#include <vector>
 
 class MyBot : public AbstractBot
 {
@@ -18,6 +19,7 @@ public:
 
  private:
     Planets knapsack01(Planets planets, int maxWeight);
+    int value(std::vector<Planet> predictions);
 };
 
 #endif // MINIBOT_H

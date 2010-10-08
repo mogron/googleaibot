@@ -81,7 +81,7 @@ void Planet::clearFleets()
     incomingFleets_m.clear();
 }
 
-int Planet::distance(Planet* p)
+int Planet::distance(const Planet* p)
 {
   return Point::distanceBetween(coordinate(),p->coordinate());
 }
@@ -89,16 +89,16 @@ int Planet::distance(Planet* p)
 
 vector<Planet> Planet::getPredictions(int t)
 {
-  Fleets fs;
+  vector<Fleet> fs;
   return getPredictions(t, fs);
 }
 
-vector <Planet> Planet::getPredictions(int t, Fleets fs)
+vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs)
 {
   vector<Planet> predictions;
   Planet p(*this);
   predictions.push_back(p);
-  for(int i(1);i!=t+1;i++){
+  for(int i(0);i!=t+1;i++){
     if(!p.owner_m->isNeutral()){
       p.shipsCount_m += p.growthRate_m;
     }
@@ -111,12 +111,14 @@ vector <Planet> Planet::getPredictions(int t, Fleets fs)
       }
     }
 
-    for (Fleets::iterator it = fs.begin(); it != fs.end(); ++it ) {
-      Fleet* f = *it;
-      if (f->turnsRemaining() == i ) {
+    for (vector<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
+      if (f->destinationPlanet() == this && f->turnsRemaining() == i ) {
         participants[f->owner()] += f->shipsCount();
       }
-    }
+      if (f->sourcePlanet() == this && f->turnsRemaining()-i+1 == this->distance(f->destinationPlanet())){
+        participants[f->owner()] -= f->shipsCount();
+      }
+     }
     
     
 

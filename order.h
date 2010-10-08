@@ -11,7 +11,7 @@ public:
     Planet* sourcePlanet;
     Planet* destinationPlanet;
 
-    const uint shipsCount;
+    uint shipsCount;
 
     bool isValid() const;
 };

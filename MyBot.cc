@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <algorithm>
 #include <map>
+#include <vector>
 
 #include "order.h"
 #include "planet.h"
@@ -34,6 +35,16 @@ void MyBot::initialize(){
         }
       }
   }
+}
+
+int MyBot::value(vector<Planet> predictions){
+  int factor = 0;
+  if(predictions.back().owner()->isMe()){
+    factor = 1;
+  } else if (predictions.back().owner()->isEnemy()){
+    factor = -1;
+  }
+  return predictions.back().shipsCount() * factor;
 }
 
 Planets MyBot::knapsack01(Planets planets, int maxWeight) {
@@ -124,46 +135,56 @@ void MyBot::executeTurn()
     }
     return;
   }
-    
 
-  const int maxactions = 3;
-  
-  for(int actions(0); actions != maxactions; ++actions){
-    for(vector<Planet*>::const_iterator p = myPlanets.begin(); p != myPlanets.end(); ++p){
-      Planet* sourcePlanet = *p;
-      
-      int minPayoffTime = turnLimit;
-      Planet* minPayoffPlanet; 
-      int minShipsNeeded;
+  const int maxActions = 10;
 
-      int maxShipsAvailable = sourcePlanet->shipsAvailable(predictions[sourcePlanet]);
-      if (maxShipsAvailable < 0){
-        maxShipsAvailable = sourcePlanet->shipsCount();
+  for(int actions(0); actions != maxActions; ++actions){
+    Orders orderCandidates;
+    for(vector<Planet*>::const_iterator p = myPlanets.begin(); p!= myPlanets.end(); ++p){
+      Planet* source = *p;
+      int shipsAvailable = source->shipsAvailable(predictions[source]);
+      if (shipsAvailable < 0){
+        shipsAvailable = source->shipsCount();
       }
-      vector<Planet*> targets = planets;
-      for(vector<Planet*>::const_iterator p2 = targets.begin(); p2 != targets.end();++p2){
-        Planet* destinationPlanet = *p2;
-        int dist = sourcePlanet->distance(destinationPlanet);
-        Planet futureDestinationPlanet = predictions[destinationPlanet][dist];
-        int payoffTime = futureDestinationPlanet.timeToPayoff() + dist;
-        bool valid = !futureDestinationPlanet.owner()->isMe() && futureDestinationPlanet.shipsCount() + 1 < maxShipsAvailable && payoffTime < minPayoffTime && !(futureDestinationPlanet.owner()->isNeutral() && me_sc < enemy_sc ) && !(futureDestinationPlanet.owner()->isEnemy() && predictions[destinationPlanet][dist-1].owner()->isNeutral()) ;
+      for(vector<Planet*>::const_iterator p = planets.begin(); p!= planets.end(); ++p){
+        Planet* destination = *p;
+        int dist = source->distance(destination);
+        Planet futureDestination = predictions[destination][dist];
+        int shipsRequired = futureDestination.shipsCount()+1;
+        bool valid = !futureDestination.owner()->isMe() && shipsRequired <= shipsAvailable && !(futureDestination.owner()->isNeutral() && me_sc < enemy_sc ) && !(futureDestination.owner()->isEnemy() && predictions[destination][dist-1].owner()->isNeutral()) ;
         if(valid){
-          minPayoffTime = payoffTime;
-          minPayoffPlanet = destinationPlanet;
-          minShipsNeeded = futureDestinationPlanet.shipsCount()+1;
+          Order o1(source, destination, shipsRequired);
+          Order o2(source, destination, shipsAvailable);
+          orderCandidates.push_back(o1);
+          orderCandidates.push_back(o2);
         }
       }
-      if(minPayoffTime < turnLimit){
-        Order order = Order(sourcePlanet, minPayoffPlanet,maxShipsAvailable);
-        game->issueOrder(order);
-        predictions[sourcePlanet] = sourcePlanet->getPredictions(lookahead);
-        predictions[minPayoffPlanet] = sourcePlanet->getPredictions(lookahead);
-      } else if(!sourcePlanet->isFrontier()){
-        Order order = Order(sourcePlanet, sourcePlanet->nextPlanetCloserToFrontier(), maxShipsAvailable/2);
-        game->issueOrder(order);
-        predictions[sourcePlanet] = sourcePlanet->getPredictions(lookahead);
-        predictions[sourcePlanet->nextPlanetCloserToFrontier()] = sourcePlanet->nextPlanetCloserToFrontier()->getPredictions(lookahead);
+    }
+
+    int maxValue = 0;
+    Order* maxOrder;
+    for(Orders::iterator oit = orderCandidates.begin(); oit != orderCandidates.end(); ++oit){
+      int dist = oit->sourcePlanet->distance(oit->destinationPlanet);
+      int baseValue = value(predictions[oit->sourcePlanet])+value(predictions[oit->destinationPlanet]);
+      vector<Fleet> fs;
+      Fleet f(myPlanets[0]->owner(), oit->sourcePlanet, oit->destinationPlanet, oit->shipsCount, dist, dist);
+      fs.push_back(f);
+      vector<Planet> sourcePredictions = oit->sourcePlanet->getPredictions(lookahead, fs);
+      vector<Planet> destinationPredictions = oit->sourcePlanet->getPredictions(lookahead, fs);
+      int newValue = value(sourcePredictions)+value(destinationPredictions) - baseValue;
+      if(newValue>maxValue){
+        maxValue = newValue;
+        maxOrder = &*oit; 
       }
     }
+    if(maxValue>0){
+      game->issueOrder(*maxOrder);
+    }
+  }
+  
+  for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
+    Planet* p = *pit;
+    Order o(p, p->nextPlanetCloserToFrontier(), p->shipsAvailable(predictions[p]));
+    game->issueOrder(o);
   }
 }
