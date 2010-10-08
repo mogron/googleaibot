@@ -97,9 +97,8 @@ vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs)
 {
   vector<Planet> predictions;
   Planet p(*this);
-  predictions.push_back(p);
   for(int i(0);i!=t+1;i++){
-    if(!p.owner_m->isNeutral()){
+    if(i!=0 && !p.owner_m->isNeutral()){
       p.shipsCount_m += p.growthRate_m;
     }
     std::map<const Player*,int> participants;

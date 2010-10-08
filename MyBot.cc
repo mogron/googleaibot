@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <iostream>
 
 #include "order.h"
 #include "planet.h"
@@ -14,6 +15,7 @@ using std::min;
 using std::max;
 using std::vector;
 using std::map;
+using std::cerr;
 
 MyBot::MyBot(Game* game) :
     AbstractBot(game)
@@ -114,6 +116,8 @@ void MyBot::executeTurn()
     p->updateFrontierStatus();
   }
 
+
+  //Turn 1 Code //
   if(game->turn() == 1){
     myStartingPlanet = myPlanets[0];
     enemyStartingPlanet = enemyPlanets[0];
@@ -136,6 +140,8 @@ void MyBot::executeTurn()
     return;
   }
 
+  //End of Turn 1 Code //
+
   const int maxActions = 10;
 
   for(int actions(0); actions != maxActions; ++actions){
@@ -145,7 +151,8 @@ void MyBot::executeTurn()
       int shipsAvailable = source->shipsAvailable(predictions[source]);
       if (shipsAvailable < 0){
         shipsAvailable = source->shipsCount();
-      }
+        }
+      cerr << shipsAvailable << std::endl;
       for(vector<Planet*>::const_iterator p = planets.begin(); p!= planets.end(); ++p){
         Planet* destination = *p;
         int dist = source->distance(destination);
@@ -170,7 +177,7 @@ void MyBot::executeTurn()
       Fleet f(myPlanets[0]->owner(), oit->sourcePlanet, oit->destinationPlanet, oit->shipsCount, dist, dist);
       fs.push_back(f);
       vector<Planet> sourcePredictions = oit->sourcePlanet->getPredictions(lookahead, fs);
-      vector<Planet> destinationPredictions = oit->sourcePlanet->getPredictions(lookahead, fs);
+      vector<Planet> destinationPredictions = oit->destinationPlanet->getPredictions(lookahead, fs);
       int newValue = value(sourcePredictions)+value(destinationPredictions) - baseValue;
       if(newValue>maxValue){
         maxValue = newValue;
@@ -179,7 +186,7 @@ void MyBot::executeTurn()
     }
     if(maxValue>0){
       game->issueOrder(*maxOrder);
-    }
+    } 
   }
   
   for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
