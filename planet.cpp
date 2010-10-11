@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <iostream>
+#include "stlastar.h"
 #include "comparator.h"
 #include "fleet.h"
 #include "player.h"
@@ -22,6 +23,17 @@ Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate
     closestPlanets_m(0)
 {
 }
+
+Planet::Planet():
+    planetID_m(0),
+    shipsCount_m(0),
+    growthRate_m(0),
+    coordinate_m(Point(0,0)),
+    owner_m(0),
+    closestPlanets_m(0)
+{
+}
+
 
 void Planet::update(const Player* owner, uint shipsCount)
 {
@@ -182,4 +194,70 @@ int Planet::shipsAvailable(vector<Planet> predictions, int t)
   return available;
 }
 
+
+// A* specific stuff:
+
+
+
+bool Planet::IsSameState( Planet &rhs )
+{
+
+	// same state in a maze search is simply when (x,y) are the same
+	if(this->planetID() == rhs.planetID())
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
+}
+
+void Planet::PrintNodeInfo()
+{
+	cout << "Planet " << this->planetID() << endl;
+}
+
+// Here's the heuristic function that estimates the distance from a Node
+// to the Goal. 
+
+float Planet::GoalDistanceEstimate( Planet &nodeGoal )
+{
+	return this->distance(&nodeGoal);
+}
+
+bool Planet::IsGoal( Planet &nodeGoal )
+{
+
+	if( this->planetID() == nodeGoal.planetID() )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+// This generates the successors to the given Node. It uses a helper function called
+// AddSuccessor to give the successors to the AStar class. The A* specific initialisation
+// is done for each node internally, so here you just set the state information that
+// is specific to the application
+bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_node )
+{
+
+  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
+    astarsearch->AddSuccessor(**pit);
+  }
+	return true;
+}
+
+// given this node, what does it cost to move to successor. In the case
+// of our map the answer is the map terrain value at this node since that is 
+// conceptually where we're moving
+
+float Planet::GetCost( Planet &successor )
+{
+	return (float) this->distance(&successor);
+
+}
 

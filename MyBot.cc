@@ -207,6 +207,57 @@ Planets MyBot::knapsack01(Planets planets, int maxWeight) {
 }
 
 
+Planet* supplyMove(Planet* pl, Planet* goal){
+	AStarSearch<Planet> astarsearch;
+  Planet* ret;
+
+
+  // Create a start state
+  Planet nodeStart(*pl);
+
+
+  // Define the goal state
+  Planet nodeEnd(*goal);
+		
+		
+  astarsearch.SetStartAndGoalStates( nodeStart, nodeEnd );
+
+  unsigned int SearchState;
+  unsigned int SearchSteps = 0;
+
+  do
+		{
+			SearchState = astarsearch.SearchStep();
+
+			SearchSteps++;
+
+		}
+  while( SearchState == AStarSearch<Planet>::SEARCH_STATE_SEARCHING );
+
+  if( SearchState == AStarSearch<Planet>::SEARCH_STATE_SUCCEEDED )
+		{
+
+      Planet *node = astarsearch.GetSolutionStart();
+
+      ret = astarsearch.GetSolutionNext();
+
+      astarsearch.FreeSolutionNodes();
+      astarsearch.EnsureMemoryFreed();
+      return ret;
+	
+		}
+  else if( SearchState == AStarSearch<Planet>::SEARCH_STATE_FAILED ) 
+		{
+      astarsearch.EnsureMemoryFreed();
+			return pl;
+		}
+
+
+
+  astarsearch.EnsureMemoryFreed();
+
+	return pl;
+}
 
 void MyBot::executeTurn()
 {
