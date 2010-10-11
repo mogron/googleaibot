@@ -21,12 +21,7 @@ public:
     Point coordinate() const;
     Planets closestPlanets();
 
-    bool frontier_m;
-    bool isFrontier();
-    void updateFrontierStatus();
-    Planet* nearestFrontierPlanet();
-    int distanceToFrontier();
-    Planet* nextPlanetCloserToFrontier();
+
     int shipsAvailable(std::vector<Planet>);
     int distance(const Planet* p);
     int timeToPayoff();

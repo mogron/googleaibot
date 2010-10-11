@@ -3,12 +3,15 @@
 #include <map>
 #include <algorithm>
 #include <vector>
+#include <iostream>
 #include "comparator.h"
 #include "fleet.h"
 #include "player.h"
 
 using std::min;
 using std::vector;
+using std::cerr;
+using std::endl;
 
 Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner) :
     planetID_m(planetID),
@@ -114,7 +117,7 @@ vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs)
       if (f->destinationPlanet() == this && f->turnsRemaining() == i ) {
         participants[f->owner()] += f->shipsCount();
       }
-      if (f->sourcePlanet() == this && f->turnsRemaining()-i+1 == this->distance(f->destinationPlanet())){
+      if (f->sourcePlanet() == this && f->turnsRemaining()-i == this->distance(f->destinationPlanet())){
         participants[f->owner()] -= f->shipsCount();
       }
      }
@@ -160,6 +163,7 @@ int Planet::timeToPayoff()
 }
 
 
+
 int Planet::shipsAvailable(vector<Planet> predictions)
 {
   int available = 100000;
@@ -174,59 +178,4 @@ int Planet::shipsAvailable(vector<Planet> predictions)
   return available;
 }
 
-void Planet::updateFrontierStatus()
-{
-  frontier_m = false;
-  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
-    Planet* p = *pit;
-    if (p->owner()->isEnemy()){
-      Planets p_closest = p->closestPlanets();
-      for(Planets::iterator pit2 = p_closest.begin(); pit2 != p_closest.end(); ++pit2){
-        Planet* p2 = *pit2;
-        if (p2->planetID() == planetID_m){
-          frontier_m = true;
-          return;
-        }
-        if (p2->owner()->isMe()){
-          frontier_m = false;
-          return;
-        }
-      }
-    }
-  }
-}
 
-bool Planet::isFrontier()
-{
-  return frontier_m;
-}
-
-Planet* Planet::nearestFrontierPlanet()
-{
-  if (frontier_m)
-    return this;
-  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
-    Planet* p = *pit;
-    if (p->owner()->isMe() && p->isFrontier())
-      return p;
-  }
-  return this;
-}
-
-int Planet::distanceToFrontier()
-{
-  return distance(nearestFrontierPlanet());
-}
-
-Planet* Planet::nextPlanetCloserToFrontier()
-{
-  if (isFrontier())
-    return this;                
-  int dist = distanceToFrontier();
-  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
-    Planet* p = *pit;
-    if(p->owner()->isMe() && p->distanceToFrontier()<dist)
-      return p;
-  }
-  return this;
-}
