@@ -164,17 +164,21 @@ int Planet::timeToPayoff()
 
 
 
-int Planet::shipsAvailable(vector<Planet> predictions)
+int Planet::shipsAvailable(vector<Planet> predictions, int t)
 {
   int available = 100000;
+  int i(0);
   for(std::vector<Planet>::const_iterator pit = predictions.begin(); pit != predictions.end(); ++pit){
     int sc = pit->shipsCount();
     if(pit->owner()->isMe()){
       available = min(available,sc);
     } else {
       available = min(available, -sc);
+      break;
     }
-    }
+    i++;
+    if(i>t)break;
+  }
   return available;
 }
 

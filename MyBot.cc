@@ -144,7 +144,6 @@ vector<Fleet> MyBot::competitiveFleets(Planet* pl)
 
     int dist = p->distance(pl);
     int i(0);
-    if(pl->planetID() == 8){ cerr << p->planetID() << "; " << predictions[p].size()<< endl;}
     for ( vector<Planet>::iterator pFuture = predictions[p].begin(); pFuture != predictions[p].end(); ++pFuture){
       if(!pFuture->owner()->isNeutral()){
         int sc;
@@ -236,19 +235,6 @@ void MyBot::executeTurn()
   for(vector<Planet*>::const_iterator pit = planets.begin();pit!=planets.end();++pit){
     Planet* p = *pit;
     competitivePredictions[p] = p->getPredictions(lookahead, competitiveFleets(p));
-    //debugcode
-    cerr << p->planetID() << ": " << competitivePredictions[p][lookahead].owner()->isMe() << endl;
-    if(p->planetID() == 8){
-      vector<Fleet> fs(competitiveFleets(p));
-      for(vector<Fleet>::iterator f = fs.begin(); f!= fs.end(); ++f){
-        cerr << f->owner()->isMe() << f->owner()->isEnemy() << "; " << f->shipsCount() << " | " << f->turnsRemaining() << " | " << f->sourcePlanet()->planetID() << endl;
-      }
-      for(int i(0); i!= lookahead; ++i){
-        cerr << competitivePredictions[p][i].owner()->isMe() << competitivePredictions[p][i].owner()->isEnemy() << "; " << competitivePredictions[p][i].shipsCount() << endl;
-      }
-    }
-    // end of debugcode
-    frontierStatus[p] = isFrontier(p);
   }
 
   for(vector<Planet*>::const_iterator pit = planets.begin();pit!=planets.end();++pit){
@@ -290,23 +276,27 @@ void MyBot::executeTurn()
     Orders orderCandidates;
     for(vector<Planet*>::const_iterator p = myPlanets.begin(); p!= myPlanets.end(); ++p){
       Planet* source = *p;
-      int shipsAvailable = source->shipsAvailable(competitivePredictions[source]);
-      if (shipsAvailable < 0){
-        shipsAvailable = source->shipsCount();
+      int shipsAvailableStatic = source->shipsAvailable(predictions[source],lookahead);
+        for(vector<Planet*>::const_iterator p = planets.begin(); p!= planets.end(); ++p){
+          Planet* destination = *p;
+          int dist = source->distance(destination);
+          int shipsAvailableCompetitive = source->shipsAvailable(competitivePredictions[source], dist*2);
+          int shipsAvailable = min(shipsAvailableCompetitive, shipsAvailableStatic);
+          if (shipsAvailableCompetitive < 0 && shipsAvailableStatic < 0){
+            shipsAvailable = source->shipsCount();
+          }
+          if(shipsAvailable>0){
+            Planet futureDestination = predictions[destination][dist];
+            int shipsRequired = futureDestination.shipsCount()+1;
+            bool valid =  shipsRequired <= shipsAvailable && !(futureDestination.owner()->isNeutral() && me_sc*2 < enemy_sc ) && !(futureDestination.owner()->isEnemy() && predictions[destination][dist-1].owner()->isNeutral()) && competitivePredictions[destination][dist].owner()->isMe();
+            if(valid){
+              Order o1(source, destination, shipsRequired);
+              Order o2(source, destination, shipsAvailable);
+              orderCandidates.push_back(o1);
+              orderCandidates.push_back(o2);
+            }
+          }
         }
-      for(vector<Planet*>::const_iterator p = planets.begin(); p!= planets.end(); ++p){
-        Planet* destination = *p;
-        int dist = source->distance(destination);
-        Planet futureDestination = predictions[destination][dist];
-        int shipsRequired = futureDestination.shipsCount()+1;
-        bool valid = !futureDestination.owner()->isMe() && shipsRequired <= shipsAvailable && !(futureDestination.owner()->isNeutral() && me_sc*2 < enemy_sc ) && !(futureDestination.owner()->isEnemy() && predictions[destination][dist-1].owner()->isNeutral()) && competitivePredictions[destination][dist].owner()->isMe();
-        if(valid){
-          Order o1(source, destination, shipsRequired);
-          Order o2(source, destination, shipsAvailable);
-          orderCandidates.push_back(o1);
-          orderCandidates.push_back(o2);
-        }
-      }
     }
 
     int maxValue = 0;
@@ -326,13 +316,19 @@ void MyBot::executeTurn()
       }
     }
     if(maxValue>0){
+      Planet* dest = maxOrder->destinationPlanet;
       game->issueOrder(*maxOrder);
+      predictions[dest] = dest->getPredictions(lookahead);
+      competitivePredictions[dest] = dest->getPredictions(lookahead, competitiveFleets(dest));
     } 
   }
   
   for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
     Planet* p = *pit;
-    Order o(p, nextPlanetCloserToFrontier(p), p->shipsAvailable(predictions[p]));
-    game->issueOrder(o);
+    int shipsAvailable = p->shipsAvailable(predictions[p],lookahead);
+    if(shipsAvailable > 0){
+      Order o(p, nextPlanetCloserToFrontier(p), shipsAvailable);
+      game->issueOrder(o);
+    }
   }
 }

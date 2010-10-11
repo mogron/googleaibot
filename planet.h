@@ -22,7 +22,7 @@ public:
     Planets closestPlanets();
 
 
-    int shipsAvailable(std::vector<Planet>);
+    int shipsAvailable(std::vector<Planet>, int t);
     int distance(const Planet* p);
     int timeToPayoff();
 private:
