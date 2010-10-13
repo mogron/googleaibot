@@ -38,6 +38,8 @@ public:
     
     void PrintNodeInfo(); 
 
+    bool predictedMine;
+
 
 private:
     void update(const Player* owner, uint shipsCount);

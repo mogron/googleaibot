@@ -21,7 +21,8 @@ Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate
     growthRate_m(growthRate),
     coordinate_m(coordinate),
     owner_m(owner),
-    closestPlanets_m(0)
+    closestPlanets_m(0),
+    predictedMine(false)
 {
 }
 
@@ -31,7 +32,8 @@ Planet::Planet():
     growthRate_m(0),
     coordinate_m(Point(0,0)),
     owner_m(0),
-    closestPlanets_m(0)
+    closestPlanets_m(0),
+    predictedMine(false)
 {
 }
 
@@ -248,7 +250,7 @@ bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_nod
 
   for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
     Planet* p = *pit;
-    if(p->owner()->isMe()) astarsearch->AddSuccessor(**pit);
+    if(p->owner()->isMe() || p->predictedMine) astarsearch->AddSuccessor(**pit);
   }
 	return true;
 }

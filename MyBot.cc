@@ -113,22 +113,27 @@ bool MyBot::isProtected(Planet* pl)
 
 bool MyBot::isFrontier(Planet* pl)
 {
+  if(!(pl->owner()->isMe() || pl->predictedMine)){
+    return false;
+  }
   Planets closest = pl->closestPlanets();
   for(Planets::iterator pit = closest.begin(); pit != closest.end(); ++pit){
     Planet* p = *pit;
-    if (p->owner() != pl->owner() && !p->owner()->isNeutral()){
+    if (p->owner()->isEnemy() && !p->predictedMine){
       Planets p_closest = p->closestPlanets();
       for(Planets::iterator pit2 = p_closest.begin(); pit2 != p_closest.end(); ++pit2){
         Planet* p2 = *pit2;
         if (p2->planetID() == pl->planetID()){
+          cerr << pl->planetID() << endl;
           return true;
         }
-        if (p2->owner() == pl->owner()){
+        if ((p2->owner()->isMe()  || p2->predictedMine) && p2->distance(pl) < pl->distance(p)){
           return false;
         }
       }
     }
   }
+  return false;
 }
 
 
@@ -139,7 +144,7 @@ Planet* MyBot::nearestFrontierPlanet(Planet* pl)
   Planets closest = pl->closestPlanets();
   for(Planets::iterator pit = closest.begin(); pit != closest.end(); ++pit){
     Planet* p = *pit;
-    if (p->owner() == pl->owner() && frontierStatus[p])
+    if (frontierStatus[p])
       return p;
   }
   return pl;
@@ -175,6 +180,7 @@ vector<Fleet> MyBot::competitiveFleets(Planet* pl)
 
     int dist = p->distance(pl);
     int i(0);
+    int sent(0);
     for ( vector<Planet>::iterator pFuture = predictions[p].begin(); pFuture != predictions[p].end(); ++pFuture){
       if(!pFuture->owner()->isNeutral()){
         int sc;
@@ -182,10 +188,13 @@ vector<Fleet> MyBot::competitiveFleets(Planet* pl)
         if(i == 0){
           sc = pFuture->shipsCount();
         } else {
-          sc = pFuture->growthRate();
+          sc = pFuture->shipsCount()-sent;
         } 
-        Fleet f(pFuture->owner(), p, pl, sc, dist+i, dist+i);
-        fs.push_back(f);
+        if(sc>0){
+          sent += sc;
+          Fleet f(pFuture->owner(), p, pl, sc, dist+i, dist+i);
+          fs.push_back(f);
+        }
       }
       ++i;
     }
@@ -203,6 +212,7 @@ vector<Fleet> MyBot::worstCaseFleets(Planet* pl)
 
     int dist = p->distance(pl);
     int i(0);
+    int sent(0);
     for ( vector<Planet>::iterator pFuture = predictions[p].begin(); pFuture != predictions[p].end(); ++pFuture){
       if(pFuture->owner()->isEnemy()){
         int sc;
@@ -210,10 +220,13 @@ vector<Fleet> MyBot::worstCaseFleets(Planet* pl)
         if(i == 0){
           sc = pFuture->shipsCount();
         } else {
-          sc = pFuture->growthRate();
+          sc = pFuture->shipsCount()-sent;
         } 
-        Fleet f(pFuture->owner(), p, pl, sc, dist+i, dist+i);
-        fs.push_back(f);
+        if(sc>0){
+          sent += sc;
+          Fleet f(pFuture->owner(), p, pl, sc, dist+i, dist+i);
+          fs.push_back(f);
+        }
       }
       ++i;
     }
@@ -405,8 +418,20 @@ void MyBot::executeTurn()
 
   for(vector<Planet*>::const_iterator pit = planets.begin();pit!=planets.end();++pit){
     Planet* p = *pit;
+    p->predictedMine = false;
+    for(vector<Planet>::const_iterator p2 = predictions[p].begin();p2!=predictions[p].end();++p2){
+      if(p2->owner()->isMe()){
+        p->predictedMine = true;
+      }
+    }
+  }
+
+  for(vector<Planet*>::const_iterator pit = planets.begin();pit!=planets.end();++pit){
+    Planet* p = *pit;
     frontierStatus[p] = isFrontier(p);
   }
+
+
 
   int my_predictedGrowthRate = myPredictedGrowthRate(lookahead); 
   int enemy_predictedGrowthRate = enemyPredictedGrowthRate(lookahead);
@@ -446,8 +471,8 @@ void MyBot::executeTurn()
     for(vector<Planet*>::const_iterator p = myPlanets.begin(); p!= myPlanets.end(); ++p){
       Planet* source = *p;
       int shipsAvailableStatic = source->shipsAvailable(predictions[source],lookahead);
-        for(vector<Planet*>::const_iterator p = planets.begin(); p!= planets.end(); ++p){
-          Planet* destination = *p;
+        for(vector<Planet*>::const_iterator p2 = planets.begin(); p2!= planets.end(); ++p2){
+          Planet* destination = *p2;
           int dist = source->distance(destination);
           int shipsAvailableCompetitive = source->shipsAvailable(competitivePredictions[source], dist*2);
           if (shipsAvailableStatic < 0 && predictions[source][1].owner()->isEnemy()){
@@ -456,13 +481,22 @@ void MyBot::executeTurn()
           if(max(shipsAvailableStatic, shipsAvailableCompetitive)>0){
             Planet futureDestination = predictions[destination][dist];
             int shipsRequired = futureDestination.shipsCount()+1;
+            if(futureDestination.owner()->isMe()){
+              for(int t(dist); t!=lookahead+1; ++t){
+                if(predictions[destination][t].owner()->isEnemy()){
+                  shipsRequired = predictions[destination][t].shipsCount()+1;
+                  break;
+                }
+              }
+              continue;
+            }
             int shipsRequiredWorstCase = worstCasePredictions[destination][dist].shipsCount()+1;
             bool valid =  shipsRequired <= max(shipsAvailableCompetitive, shipsAvailableStatic) 
               &&!(futureDestination.owner()->isNeutral() 
                   && me_sc*2 < enemy_sc  ) 
               && !(futureDestination.owner()->isEnemy() 
                    && predictions[destination][dist-1].owner()->isNeutral()) 
-              && (competitivePredictions[destination][dist].owner()->isMe() 
+              && (competitivePredictions[destination][dist].owner()->isMe() || competitivePredictions[destination][min(lookahead, 2*dist)].owner()->isMe()
                   || (my_growthRate < enemy_growthRate 
                       && my_predictedGrowthRate < enemy_predictedGrowthRate));
             if(valid){
@@ -510,7 +544,7 @@ void MyBot::executeTurn()
         maxOrder = &*oit; 
       }
     }
-    if(maxValue>0){
+    if(maxValue>0 && maxOrder->isValid()){
       Planet* dest = maxOrder->destinationPlanet;
       Planet* source = maxOrder->sourcePlanet;
       game->issueOrder(*maxOrder);
