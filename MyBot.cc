@@ -373,6 +373,7 @@ void MyBot::executeTurn()
   if (game->turn() <= 1){
     initialize();
   }
+  if(myPlanets.size() == 0 || enemyPlanets.size() ==0){ return;}
 
   Player* enemy = game->playerByID(2);
   Player* me = game->playerByID(1);
@@ -449,15 +450,14 @@ void MyBot::executeTurn()
           Planet* destination = *p;
           int dist = source->distance(destination);
           int shipsAvailableCompetitive = source->shipsAvailable(competitivePredictions[source], dist*2);
-          int shipsAvailable = max(shipsAvailableCompetitive, shipsAvailableStatic);
           if (shipsAvailableStatic < 0 && predictions[source][1].owner()->isEnemy()){
-            shipsAvailable = source->shipsCount();
+            shipsAvailableStatic = source->shipsCount();
           }
-          if(shipsAvailable>0){
+          if(max(shipsAvailableStatic, shipsAvailableCompetitive)>0){
             Planet futureDestination = predictions[destination][dist];
             int shipsRequired = futureDestination.shipsCount()+1;
             int shipsRequiredWorstCase = worstCasePredictions[destination][dist].shipsCount()+1;
-            bool valid =  shipsRequired <= shipsAvailable 
+            bool valid =  shipsRequired <= max(shipsAvailableCompetitive, shipsAvailableStatic) 
               &&!(futureDestination.owner()->isNeutral() 
                   && me_sc*2 < enemy_sc  ) 
               && !(futureDestination.owner()->isEnemy() 
@@ -466,15 +466,17 @@ void MyBot::executeTurn()
                   || (my_growthRate < enemy_growthRate 
                       && my_predictedGrowthRate < enemy_predictedGrowthRate));
             if(valid){
+              Order o2(source, destination, max(shipsAvailableStatic,shipsAvailableCompetitive));
+              orderCandidates.push_back(o2);
+              Order o3(source, destination, min(shipsAvailableStatic, shipsAvailableCompetitive));
+              orderCandidates.push_back(o3);
               if(!protects(destination, source)){
                 Order o1(source, destination, shipsRequired); 
                 orderCandidates.push_back(o1);       
               }   
-              Order o2(source, destination, shipsAvailable);
-              orderCandidates.push_back(o2);
-              if(shipsRequiredWorstCase <= shipsAvailable){
-                Order o3(source, destination, shipsRequiredWorstCase);
-                orderCandidates.push_back(o3);
+              if(shipsRequiredWorstCase <= min(shipsAvailableStatic, shipsAvailableCompetitive)){
+                Order o4(source, destination, shipsRequiredWorstCase);
+                orderCandidates.push_back(o4);
               }
             }
           }
