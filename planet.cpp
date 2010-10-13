@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <iostream>
+#include <cmath>
 #include "stlastar.h"
 #include "comparator.h"
 #include "fleet.h"
@@ -246,7 +247,8 @@ bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_nod
 {
 
   for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
-    astarsearch->AddSuccessor(**pit);
+    Planet* p = *pit;
+    if(p->owner()->isMe()) astarsearch->AddSuccessor(**pit);
   }
 	return true;
 }
@@ -257,7 +259,8 @@ bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_nod
 
 float Planet::GetCost( Planet &successor )
 {
-	return (float) this->distance(&successor);
+  float dist = (float) this->distance(&successor);
+	return (float) dist*sqrt(dist);
 
 }
 

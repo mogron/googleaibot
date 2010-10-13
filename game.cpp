@@ -115,6 +115,27 @@ Player* Game::playerByID(uint playerID)
     return player;
 }
 
+
+const Planet* Game::planetByID(uint planetID) const
+{
+    return planetByID(planetID);
+}
+
+Planet* Game::planetByID(uint planetID)
+{
+    Planet* planet = 0;
+
+    uint size = planets_m.size();
+    for (uint i = 0; i < size; ++i) {
+        if (planets_m.at(i)->planetID() == planetID) {
+            planet = planets_m.at(i);
+        }
+    }
+
+    return planet;
+}
+
+
 Planets const& Game::planets() const
 {
     return planets_m;

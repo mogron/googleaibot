@@ -21,6 +21,10 @@ public:
     const Player* playerByID(uint playerID) const;
     Player* playerByID(uint playerID);
 
+    const Planet* planetByID(uint planetID) const;
+    Planet* planetByID(uint planetID);
+
+
     Planets const& planets() const;
     Planets myPlanets() const;
     Planets neutralPlanets() const;
