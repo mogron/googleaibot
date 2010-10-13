@@ -450,7 +450,7 @@ void MyBot::executeTurn()
           int dist = source->distance(destination);
           int shipsAvailableCompetitive = source->shipsAvailable(competitivePredictions[source], dist*2);
           int shipsAvailable = max(shipsAvailableCompetitive, shipsAvailableStatic);
-          if (shipsAvailableStatic < 0 && predictions[destination][1].owner()->isEnemy()){
+          if (shipsAvailableStatic < 0 && predictions[source][1].owner()->isEnemy()){
             shipsAvailable = source->shipsCount();
           }
           if(shipsAvailable>0){
