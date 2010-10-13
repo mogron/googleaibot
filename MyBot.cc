@@ -500,11 +500,14 @@ void MyBot::executeTurn()
                   || (my_growthRate < enemy_growthRate 
                       && my_predictedGrowthRate < enemy_predictedGrowthRate));
             if(valid){
-              Order o2(source, destination, max(shipsAvailableStatic,shipsAvailableCompetitive));
-              orderCandidates.push_back(o2);
+              //TEST OTHER STUFF HERE - ROOM FOR IMPROVEMENT/////
+              if(!frontierStatus[source]){
+                Order o2(source, destination, max(shipsAvailableStatic,shipsAvailableCompetitive));
+                orderCandidates.push_back(o2);
+              }
               Order o3(source, destination, min(shipsAvailableStatic, shipsAvailableCompetitive));
               orderCandidates.push_back(o3);
-              if(!protects(destination, source)){
+              if(!protects(destination, source) && !frontierStatus[source]){
                 Order o1(source, destination, shipsRequired); 
                 orderCandidates.push_back(o1);       
               }   
