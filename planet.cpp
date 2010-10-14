@@ -259,7 +259,7 @@ bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_nod
 
   for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
     Planet* p = *pit;
-    if(p->owner()->isMe() || p->predictedMine) astarsearch->AddSuccessor(**pit);
+    if(p->owner()->isMe() || p->predictedMine || p->frontierStatus) astarsearch->AddSuccessor(**pit);
   }
 	return true;
 }

@@ -39,6 +39,7 @@ public:
     
     void PrintNodeInfo(); 
 
+    bool frontierStatus;
     bool predictedMine;
 
 
