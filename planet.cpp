@@ -104,6 +104,15 @@ int Planet::distance(const Planet* p)
   return Point::distanceBetween(coordinate(),p->coordinate());
 }
 
+//returns the minimum distance to a set of planets
+int Planet::distance(const Planets& ps)
+{
+  int dist = this->distance(this->closestPlanets_m.back());
+  for(Planets::const_iterator pit = ps.begin(); pit != ps.end(); ++pit){
+    dist = min(dist, this->distance(*pit));
+  }
+  return dist;
+}
 
 vector<Planet> Planet::getPredictions(int t)
 {

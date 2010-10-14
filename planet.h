@@ -26,6 +26,7 @@ public:
 
     int shipsAvailable(std::vector<Planet>, int t);
     int distance(const Planet* p);
+    int distance(const Planets& ps);
     int timeToPayoff();
 
 

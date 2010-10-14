@@ -27,6 +27,7 @@ public:
     std::map<Planet*, std::vector<Planet > > competitivePredictions;
     std::map<Planet*, std::vector<Planet > > worstCasePredictions;
     std::map<Planet*, bool> frontierStatus;
+    int distance(Planets ps1, Planets ps2);
     int supplyMove(Planet* pl, Planet* goal);
     Planets knapsack01(Planets planets, int maxWeight);
     int value(std::vector<Planet> predictions);

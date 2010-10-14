@@ -124,7 +124,6 @@ bool MyBot::isFrontier(Planet* pl)
       for(Planets::iterator pit2 = p_closest.begin(); pit2 != p_closest.end(); ++pit2){
         Planet* p2 = *pit2;
         if (p2->planetID() == pl->planetID()){
-          cerr << pl->planetID() << endl;
           return true;
         }
         if ((p2->owner()->isMe()  || p2->predictedMine) && p2->distance(pl) < pl->distance(p)){
@@ -169,6 +168,15 @@ Planet* MyBot::nextPlanetCloserToFrontier(Planet* pl)
   return pl;
 }
 
+int MyBot::distance(Planets ps1, Planets ps2)
+{
+  int dist = ps1[0]->distance(ps2[0]);
+  for(Planets::const_iterator pit = ps1.begin(); pit != ps1.end(); ++pit){
+    Planet* p = *pit;
+    dist = min(p->distance(ps2), dist);
+  }
+  return dist;
+}
 
 
 vector<Fleet> MyBot::competitiveFleets(Planet* pl)
@@ -500,7 +508,6 @@ void MyBot::executeTurn()
                   || (my_growthRate < enemy_growthRate 
                       && my_predictedGrowthRate < enemy_predictedGrowthRate));
             if(valid){
-              //TEST OTHER STUFF HERE - ROOM FOR IMPROVEMENT/////
               if(frontierStatus[source]){
                 if(protects(destination, source)){
                   Order o8(source, destination, shipsAvailableStatic);
@@ -549,7 +556,7 @@ void MyBot::executeTurn()
         wfsDest.push_back(f);
         if (willHoldFor(destination->getPredictions(lookahead,wfsDest), dist)*destination->growthRate() < destination->shipsCount()){
           continue;
-        }
+        } 
       }
       vector<Planet> sourcePredictions = source->getPredictions(lookahead, fs);
       vector<Planet> destinationPredictions = destination->getPredictions(lookahead, fs);
@@ -568,6 +575,14 @@ void MyBot::executeTurn()
       competitivePredictions[dest] = dest->getPredictions(lookahead, competitiveFleets(dest));
       competitivePredictions[source] = source->getPredictions(lookahead, competitiveFleets(dest));
     } 
+  }
+
+  for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit){
+    //try: only planets that are "on my side", that is p->distance(enemy) > me->distance(enemy)
+    Planet* p = *pit;
+    if(predictions[p][lookahead].owner()->isNeutral() && competitivePredictions[p][lookahead].owner()->isMe() && p->growthRate()*turnsRemaining < p->shipsCount() && p->distance(enemyPlanets) < distance(myPlanets, enemyPlanets)){
+      frontierStatus[p] = true;
+    }      
   }
   
   for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
