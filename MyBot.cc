@@ -501,19 +501,31 @@ void MyBot::executeTurn()
                       && my_predictedGrowthRate < enemy_predictedGrowthRate));
             if(valid){
               //TEST OTHER STUFF HERE - ROOM FOR IMPROVEMENT/////
-              if(!frontierStatus[source]){
+              if(frontierStatus[source]){
+                if(protects(destination, source)){
+                  Order o8(source, destination, shipsAvailableStatic);
+                  orderCandidates.push_back(o8);
+                }
+                Order o5(source, destination, shipsAvailableCompetitive);
+                orderCandidates.push_back(o5);
+                if(shipsRequired < shipsAvailableCompetitive){
+                  Order o6(source, destination, shipsAvailableCompetitive);
+                  orderCandidates.push_back(o6);
+                }
+              } else {
                 Order o2(source, destination, max(shipsAvailableStatic,shipsAvailableCompetitive));
                 orderCandidates.push_back(o2);
-              }
-              Order o3(source, destination, min(shipsAvailableStatic, shipsAvailableCompetitive));
-              orderCandidates.push_back(o3);
-              if(!protects(destination, source) && !frontierStatus[source]){
-                Order o1(source, destination, shipsRequired); 
-                orderCandidates.push_back(o1);       
-              }   
-              if(shipsRequiredWorstCase <= min(shipsAvailableStatic, shipsAvailableCompetitive)){
-                Order o4(source, destination, shipsRequiredWorstCase);
-                orderCandidates.push_back(o4);
+              
+                Order o3(source, destination, min(shipsAvailableStatic, shipsAvailableCompetitive));
+                orderCandidates.push_back(o3);
+                if(!protects(destination, source)){
+                  Order o1(source, destination, shipsRequired); 
+                  orderCandidates.push_back(o1);       
+                }   
+                if(shipsRequiredWorstCase <= min(shipsAvailableStatic, shipsAvailableCompetitive)){
+                  Order o4(source, destination, shipsRequiredWorstCase);
+                  orderCandidates.push_back(o4);
+                }
               }
             }
           }
