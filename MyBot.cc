@@ -589,8 +589,8 @@ void MyBot::executeTurn()
   for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit){
     Planet* p = *pit;
     if(p->frontierStatus){
-      shipsNeededOnFrontier[p] -= predictions[p][lookahead]->shipsCount();
-      if(!predictions[p][lookahead]->owner()->isMe()){
+      shipsNeededOnFrontier[p] -= predictions[p][lookahead].shipsCount();
+      if(!predictions[p][lookahead].owner()->isMe()){
         shipsNeededOnFrontier[p] *= -1;
       }
     }
@@ -630,7 +630,7 @@ void MyBot::executeTurn()
       break;
     } else {
       bool suppliersAvailable(false);
-      Planets closest = maxPlanet.closestPlanets();
+      Planets closest = maxPlanet->closestPlanets();
       for(Planets::const_iterator pit = closest.begin(); pit != closest.end(); ++pit){
         Planet* p = *pit;
         if(shipsAvailable[p]>0){
@@ -639,7 +639,7 @@ void MyBot::executeTurn()
           game->issueOrder(o);
           shipsAvailable[p] -= sc;
           shipsNeededOnFrontier[p] -= sc;
-          suppliersAvailable(true);
+          suppliersAvailable = true;
           break;
         }
       }
