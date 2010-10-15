@@ -386,7 +386,7 @@ int MyBot::enemyPredictedGrowthRate(int t)
 
 void MyBot::executeTurn()
 {
-  cerr << "Turn: " << game->turn() << endl;
+  //cerr << "Turn: " << game->turn() << endl;
   const int turnLimit = 200;
   turnsRemaining = turnLimit - game->turn();
   planets = game->planets();
@@ -595,7 +595,9 @@ void MyBot::executeTurn()
   Planet* fastestPayoffPlanet;
   for(Planets::const_iterator pit = neutralPlanets.begin(); pit != neutralPlanets.end(); ++pit){
     Planet* p = *pit;
-    if(p->growthRate()>0 && predictions[p][lookahead].owner()->isNeutral() && competitivePredictions[p][lookahead].owner()->isMe() && me_sc + my_growthRate*distance(enemyPlanets,myPlanets) - predictions[p][lookahead].shipsCount() >= enemy_sc){
+    Planets temp = myPlanets;
+    temp.push_back(p);
+    if(p->growthRate()>0 && predictions[p][lookahead].owner()->isNeutral() && competitivePredictions[p][lookahead].owner()->isMe() && me_sc + my_growthRate*distance(enemyPlanets,temp) - predictions[p][lookahead].shipsCount() >= enemy_sc && (my_growthRate <= enemy_growthRate || my_predictedGrowthRate <= enemy_predictedGrowthRate)){
       int timeToPayoff = predictions[p][lookahead].shipsCount() / p->growthRate() + 1;
       if(timeToPayoff < fastestPayoff){
         fastestPayoff = timeToPayoff;
@@ -605,12 +607,10 @@ void MyBot::executeTurn()
   }
   if(fastestPayoff < lookahead){
     fastestPayoffPlanet->frontierStatus = true;
-    cerr << fastestPayoffPlanet->planetID() << endl;
     for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit){
       Planet* p = *pit;
       if(p->planetID() != fastestPayoffPlanet->planetID() &&  protects(fastestPayoffPlanet, p)){
         p->frontierStatus = false;
-        cerr << p->planetID() << endl;
       }
     }
   }
