@@ -18,7 +18,6 @@ public:
     int turnsRemaining;
 
     void executeTurn();
-    static void log(char *format, ...);
 
  private:
     int myPredictedGrowthRate(int t);
@@ -26,7 +25,6 @@ public:
     std::map<Planet*, std::vector<Planet > > predictions;
     std::map<Planet*, std::vector<Planet > > competitivePredictions;
     std::map<Planet*, std::vector<Planet > > worstCasePredictions;
-    std::map<Planet*, bool> frontierStatus;
     int distance(Planets ps1, Planets ps2);
     int supplyMove(Planet* pl, Planet* goal);
     Planets knapsack01(Planets planets, int maxWeight);
