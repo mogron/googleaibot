@@ -168,6 +168,7 @@ Planet* MyBot::nextPlanetCloserToFrontier(Planet* pl)
   return pl;
 }
 
+
 int MyBot::distance(Planets ps1, Planets ps2)
 {
   int dist = ps1[0]->distance(ps2[0]);
@@ -564,6 +565,7 @@ void MyBot::executeTurn()
       vector<Planet> sourcePredictions = source->getPredictions(lookahead, fs);
       vector<Planet> destinationPredictions = destination->getPredictions(lookahead, fs);
       int newValue = value(sourcePredictions)+value(destinationPredictions) - baseValue;
+      maxValue *= (max_distance_between_planets-dist); //TODO:try something softer!
       if(newValue>maxValue){
         maxValue = newValue;
         maxOrder = &*oit; 
@@ -581,14 +583,77 @@ void MyBot::executeTurn()
   }
 
 
+  // SUPPLY LINES //
+
+  map<Planet*, int> shipsNeededOnFrontier;
+  for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit){
+    Planet* p = *pit;
+    if(p->frontierStatus){
+      shipsNeededOnFrontier[p] -= predictions[p][lookahead]->shipsCount();
+      if(!predictions[p][lookahead]->owner()->isMe()){
+        shipsNeededOnFrontier[p] *= -1;
+      }
+    }
+  }
+
+  for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit){
+    Planet* p = *pit;
+    Planet pFut = predictions[p][lookahead];
+    if(pFut.owner()->isEnemy()){
+      shipsNeededOnFrontier[nearestFrontierPlanet(p)] += pFut.shipsCount();
+    }
+  }
   
+  map<Planet*,int> shipsAvailable;
   for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
     Planet* p = *pit;
-    int shipsAvailable = p->shipsAvailable(predictions[p],lookahead);
-    if(shipsAvailable > 0){
-      cerr << p->planetID() << ": " << nearestFrontierPlanet(p)->planetID() << endl;
+    if(p->frontierStatus){
+      shipsAvailable[p] = 0;
+    } else {
+      shipsAvailable[p] = p->shipsAvailable(predictions[p],lookahead);
+    }
+  }
+      
+  while(true){
+    int maxShipsNeeded(0);
+    Planet* maxPlanet;
+    for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
+      Planet* p = *pit;
+      if(p->frontierStatus){
+        if(shipsNeededOnFrontier[p] > maxShipsNeeded){
+          maxShipsNeeded = shipsNeededOnFrontier[p];
+          maxPlanet = p;
+        }
+      }
+    }
+    if(maxShipsNeeded == 0){
+      break;
+    } else {
+      bool suppliersAvailable(false);
+      Planets closest = maxPlanet.closestPlanets();
+      for(Planets::const_iterator pit = closest.begin(); pit != closest.end(); ++pit){
+        Planet* p = *pit;
+        if(shipsAvailable[p]>0){
+          int sc = min(shipsAvailable[p], shipsNeededOnFrontier[p]);
+          Order o(p, maxPlanet, sc);
+          game->issueOrder(o);
+          shipsAvailable[p] -= sc;
+          shipsNeededOnFrontier[p] -= sc;
+          suppliersAvailable(true);
+          break;
+        }
+      }
+      if(!suppliersAvailable){
+        break;
+      }
+    }
+  }
+
+  for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
+    Planet* p = *pit;
+    if(shipsAvailable[p]>0){
       Planet* target = game->planetByID(supplyMove(p, nearestFrontierPlanet(p)));
-      Order o(p, target, shipsAvailable);
+      Order o(p, target, shipsAvailable[p]);
       game->issueOrder(o);
     }
   }
