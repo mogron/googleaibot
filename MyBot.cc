@@ -630,8 +630,10 @@ void MyBot::executeTurn()
     Planet* p = *pit;
     if(shipsAvailable[p]>0){
       Planet* target = game->planetByID(supplyMove(p, nearestFrontierPlanet(p)));
-      Order o(p, target, shipsAvailable[p]);
-      game->issueOrder(o);
+      if(!(target->owner()->isNeutral() || target->predictedMine) || (competitivePredictions[target][p->distance(target)].owner()->isMe())){
+        Order o(p, target, shipsAvailable[p]);
+        game->issueOrder(o);
+      }
     }
   }
 }
