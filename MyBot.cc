@@ -386,7 +386,7 @@ int MyBot::enemyPredictedGrowthRate(int t)
 
 void MyBot::executeTurn()
 {
-  //cerr << "Turn: " << game->turn() << endl;
+  cerr << "Turn: " << game->turn() << endl;
   const int turnLimit = 200;
   turnsRemaining = turnLimit - game->turn();
   planets = game->planets();
@@ -636,4 +636,5 @@ void MyBot::executeTurn()
       }
     }
   }
+  cerr << "Turn finished" << endl;
 }
