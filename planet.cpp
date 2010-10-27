@@ -69,7 +69,7 @@ Point Planet::coordinate() const
     return coordinate_m;
 }
 
-Planets Planet::closestPlanets()
+Planets Planet::closestPlanets() const
 {
     return closestPlanets_m;
 }
@@ -120,7 +120,7 @@ vector<Planet> Planet::getPredictions(int t)
   return getPredictions(t, fs);
 }
 
-vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs)
+vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs) 
 {
   vector<Planet> predictions;
   Planet p(*this);
@@ -173,7 +173,7 @@ vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs)
 }
 
 //if the planet is conquered NOW, how long will it take to pay back lost ships + 20 ships? Meant to be used on future versions of the planet.
-int Planet::timeToPayoff()
+int Planet::timeToPayoff() const
 {
   if (growthRate() == 0){
     return 1000;
@@ -188,23 +188,7 @@ int Planet::timeToPayoff()
 
 
 
-int Planet::shipsAvailable(vector<Planet> predictions, int t)
-{
-  int available = 100000;
-  int i(0);
-  for(std::vector<Planet>::const_iterator pit = predictions.begin(); pit != predictions.end(); ++pit){
-    int sc = pit->shipsCount();
-    if(pit->owner()->isMe()){
-      available = min(available,sc);
-    } else {
-      available = min(available, -sc);
-      break;
-    }
-    i++;
-    if(i>t)break;
-  }
-  return available;
-}
+
 
 
 // A* specific stuff:

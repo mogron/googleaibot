@@ -21,13 +21,12 @@ public:
 
 
     Point coordinate() const;
-    Planets closestPlanets();
+    Planets closestPlanets() const;
 
 
-    int shipsAvailable(std::vector<Planet>, int t);
     int distance(const Planet* p);
     int distance(const Planets& ps);
-    int timeToPayoff();
+    int timeToPayoff() const;
 
 
     //A* specific stuff:
