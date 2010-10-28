@@ -61,7 +61,7 @@ void MyBot::executeTurn() {
     } 
 
 
-    const int maxActions = 10;
+    const int maxActions = 20;
     for(int actions(0); actions != maxActions; ++actions) {
         //find a good action and execute it, if possible
         if (!chooseAction()) { 
@@ -351,7 +351,7 @@ int MyBot::value(Order* oit){
     vector<Planet> destinationPredictions = destination->getPredictions(lookahead, fs);
     int newValue = value(sourcePredictions) + value(destinationPredictions) - baseValue;
     //higher distance means that the payoff predictions are less reliable, so closer targets are preferable:
-    newValue *= log(maxDistanceBetweenPlanets - dist + 1);  
+    newValue *= (maxDistanceBetweenPlanets - dist + 1);  
     return newValue;
 }
 
