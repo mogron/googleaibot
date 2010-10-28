@@ -44,6 +44,7 @@ public:
     void supply();
     int supplyMove(Planet* pl, Planet* goal);
     void setExpansionTargets();
+    void panic();
 
     
     //predictions:
@@ -68,6 +69,7 @@ public:
     Planet* nextPlanetCloserToFrontier(Planet* pl) const;
     bool isFrontier(Planet* pl) const;
     int distance(const Planets& ps1, const Planets& ps2) const;
+    Planet* nearestEnemyPlanet(Planet* pl) const;
 };
 
 #endif // MY_BOT_H

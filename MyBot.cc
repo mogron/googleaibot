@@ -60,6 +60,7 @@ void MyBot::executeTurn() {
         return;
     } 
 
+
     const int maxActions = 10;
     for(int actions(0); actions != maxActions; ++actions) {
         //find a good action and execute it, if possible
@@ -70,6 +71,13 @@ void MyBot::executeTurn() {
 
     //sent available ships towards the frontier
     supply();
+
+    bool badSituation = me->shipsCount() < enemy->shipsCount() 
+      && me->growthRate() < enemy->growthRate()
+      && myPredictedGrowthRate(lookahead) < enemyPredictedGrowthRate(lookahead);
+    if(badSituation){
+      panic();
+    }
 
     cerr << "Turn finished" << endl;
 }
@@ -229,8 +237,8 @@ void MyBot::supply() {
         Planet* p = *pit;
         if (shipsAvail[p]>0) {
             Planet* target = game->planetByID(supplyMove(p, nearestFrontierPlanet(p)));
-            if (!(target->owner()->isNeutral() 
-                  || target->predictedMine) 
+            if (target->owner()->isMe() 
+                || target->predictedMine 
                 || (competitivePredictions[target][p->distance(target)].owner()->isMe())) {
                 Order o(p, target, shipsAvail[p]);
                 game->issueOrder(o);
@@ -240,6 +248,18 @@ void MyBot::supply() {
 }
 
 
+void MyBot::panic(){
+  for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
+    Planet* p = *pit;
+    if(p->frontierStatus){
+      Planet* target = nearestEnemyPlanet(p);
+      int dist = p->distance(target);
+      Order o(p, target, shipsAvailable(predictions[p],dist * 2));
+      game->issueOrder(o);
+    }
+  }
+}
+
 //find the order candidates for planet source. Orders are added by modifying the passed-by-ref orderCandidates.
 //there is a lot of finetuning for special cases in this function, that makes it somewhat ugly.
 void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
@@ -247,62 +267,64 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
     for(Planets::const_iterator p = planets.begin(); p!= planets.end(); ++p) {
         Planet* destination = *p;
         int dist = source->distance(destination);
-        int shipsAvailableCompetitive = shipsAvailable(competitivePredictions[source], dist*2);
-        if (shipsAvailableStatic < 0 && predictions[source][1].owner()->isEnemy()) {
+        if(dist <= turnsRemaining){
+          int shipsAvailableCompetitive = shipsAvailable(competitivePredictions[source], dist*2);
+          if (shipsAvailableStatic < 0 && predictions[source][1].owner()->isEnemy()) {
             shipsAvailableStatic = source->shipsCount();
-        }
-        if (max(shipsAvailableStatic, shipsAvailableCompetitive)>0) {
+          }
+          if (max(shipsAvailableStatic, shipsAvailableCompetitive)>0) {
             Planet futureDestination = predictions[destination][dist];
             int shipsRequired = futureDestination.shipsCount()+1;
             if (futureDestination.owner()->isMe()) {
-                for(int t(dist); t!=lookahead+1; ++t) {
-                    if (predictions[destination][t].owner()->isEnemy()) {
-                        shipsRequired = predictions[destination][t].shipsCount()+1;
-                        break;
-                    }
+              for(int t(dist); t!=lookahead+1; ++t) {
+                if (predictions[destination][t].owner()->isEnemy()) {
+                  shipsRequired = predictions[destination][t].shipsCount()+1;
+                  break;
                 }
-                continue;
+              }
+              continue;
             }
             int shipsRequiredWorstCase = worstCasePredictions[destination][dist].shipsCount()+1;
             //the conditions for validity make sure that my bot is not too aggressive, and does not attack neutrals when the enemy can snipe
             bool valid =  shipsRequired <= max(shipsAvailableCompetitive, shipsAvailableStatic) 
-                &&!(futureDestination.owner()->isNeutral() 
-                    && me->shipsCount()*2 < enemy->shipsCount()  ) 
-                && !(futureDestination.owner()->isEnemy() 
-                     && predictions[destination][dist-1].owner()->isNeutral()) 
-                && (competitivePredictions[destination][dist].owner()->isMe() 
-                    || competitivePredictions[destination][min(lookahead, 2*dist)].owner()->isMe()
-                    || (me->growthRate() < enemy->growthRate() 
-                        && myPredictedGrowth < enemyPredictedGrowth)
-                    || me->shipsCount() > enemy->shipsCount() + shipsRequired);
+              &&!(futureDestination.owner()->isNeutral() 
+                  && me->shipsCount()*2 < enemy->shipsCount()  ) 
+              && !(futureDestination.owner()->isEnemy() 
+                   && predictions[destination][dist-1].owner()->isNeutral()) 
+              && (competitivePredictions[destination][dist].owner()->isMe() 
+                  || competitivePredictions[destination][min(lookahead, 2*dist)].owner()->isMe()
+                  || (me->growthRate() < enemy->growthRate() 
+                      && myPredictedGrowth < enemyPredictedGrowth)
+                  || me->shipsCount() > enemy->shipsCount() + shipsRequired);
             if (valid) {
-                //add orders to the order candidates. 
-                //Since there is time pressure I can not take all possible orders for this source and target, and instead try to cover the most important ones
-                if (protects(source, destination)) {
-                    int sc = shipsRequired;
-                    orderCandidates.push_back(Order(source, destination, sc));
-                } else if (source->frontierStatus) {
-                    if (protects(destination, source)) {
-                        orderCandidates.push_back( Order(source, destination, shipsAvailableStatic));
-                    }
-                    orderCandidates.push_back(Order(source, destination, shipsAvailableCompetitive));
-                    if (shipsRequired < shipsAvailableCompetitive) {
-                        orderCandidates.push_back(Order(source, destination, shipsAvailableCompetitive));
-                    }
-                    if (dist * 2 <= source->distance(enemyPlanets)) {
-                        orderCandidates.push_back(Order(source, destination, shipsRequired));
-                    }
-                } else {
-                    orderCandidates.push_back(Order(source, destination, max(shipsAvailableStatic,shipsAvailableCompetitive)));
-                    orderCandidates.push_back(Order(source, destination, min(shipsAvailableStatic, shipsAvailableCompetitive)));
-                    if (!protects(destination, source)) {
-                        orderCandidates.push_back(Order(source, destination, shipsRequired));       
-                    }   
-                    if (shipsRequiredWorstCase <= min(shipsAvailableStatic, shipsAvailableCompetitive)) {
-                        orderCandidates.push_back(Order (source, destination, shipsRequiredWorstCase));
-                    }
+              //add orders to the order candidates. 
+              //Since there is time pressure I can not take all possible orders for this source and target, and instead try to cover the most important ones
+              if (protects(source, destination)) {
+                int sc = shipsRequired;
+                orderCandidates.push_back(Order(source, destination, sc));
+              } else if (source->frontierStatus) {
+                if (protects(destination, source)) {
+                  orderCandidates.push_back( Order(source, destination, shipsAvailableStatic));
                 }
+                orderCandidates.push_back(Order(source, destination, shipsAvailableCompetitive));
+                if (shipsRequired < shipsAvailableCompetitive) {
+                  orderCandidates.push_back(Order(source, destination, shipsAvailableCompetitive));
+                }
+                if (dist * 2 <= source->distance(enemyPlanets)) {
+                  orderCandidates.push_back(Order(source, destination, shipsRequired));
+                }
+              } else {
+                orderCandidates.push_back(Order(source, destination, max(shipsAvailableStatic,shipsAvailableCompetitive)));
+                orderCandidates.push_back(Order(source, destination, min(shipsAvailableStatic, shipsAvailableCompetitive)));
+                if (!protects(destination, source)) {
+                  orderCandidates.push_back(Order(source, destination, shipsRequired));       
+                }   
+                if (shipsRequiredWorstCase <= min(shipsAvailableStatic, shipsAvailableCompetitive)) {
+                  orderCandidates.push_back(Order (source, destination, shipsRequiredWorstCase));
+                }
+              }
             }
+          }
         }
     }
 }
@@ -334,7 +356,8 @@ int MyBot::value(Order* oit){
 }
 
 
-//find neutral planets that are interesting targets for expansion
+//find neutral planets that are interesting targets for expansion, and enemy planets that I might be able to conquer
+//TODO: similar for enemy planets
 void MyBot::setExpansionTargets(){
     //if there is a neutral planet that I might be able to conquer, and that pays off fast enough, make this neutral a frontier planet
     int fastestPayoff = lookahead;
@@ -368,17 +391,31 @@ void MyBot::setExpansionTargets(){
             }
         }
     }
+
+    for(Planets::const_iterator pit = enemyPlanets.begin(); pit != enemyPlanets.end(); ++pit) {
+      Planet* p = *pit;
+      if(competitivePredictions[p][lookahead].owner()->isMe()){
+        p->frontierStatus = true;
+      }
+      for(Planets::const_iterator pit2 = planets.begin(); pit2 != planets.end(); ++pit2) {
+        Planet* p2 = *pit2;
+        if (p2->planetID() != p->planetID() &&  protects(p, p2)) {
+          p2->frontierStatus = false;
+        }
+      }
+    }
 }
 
 //evaluates a list of predictions for a planet. This is used to calculate the value of an action/order.
 int MyBot::value(const vector<Planet>& predictions) const{
     int factor = 0;
-    if (predictions.back().owner()->isMe()) {
+    Planet finalPlanet = predictions[min(lookahead,turnsRemaining)];
+    if (finalPlanet.owner()->isMe()) {
         factor = 1;
-    } else if (predictions.back().owner()->isEnemy()) {
+    } else if (finalPlanet.owner()->isEnemy()) {
         factor = -1;
     }
-    return predictions.back().shipsCount() * factor;
+    return finalPlanet.shipsCount() * factor;
 }
 
 
@@ -487,6 +524,19 @@ Planet* MyBot::nearestFrontierPlanet(Planet* pl) const{
     return pl;
 }
 
+
+Planet* MyBot::nearestEnemyPlanet(Planet* pl) const{
+  if(pl->owner()->isEnemy()){
+    return pl;
+  }
+  Planets closest = pl->closestPlanets();
+  for(Planets::iterator pit = closest.begin(); pit != closest.end(); ++pit) {
+    Planet* p = *pit;
+    if (p->owner()->isEnemy())
+      return p;
+  }
+  return pl;
+}
 
 //how far is planet pl away from my frontier?
 int MyBot::distanceToFrontier(Planet* pl) const{
