@@ -70,6 +70,7 @@ public:
     bool isFrontier(Planet* pl) const;
     int distance(const Planets& ps1, const Planets& ps2) const;
     Planet* nearestEnemyPlanet(Planet* pl) const;
+    Planet* coveredBy(Planet* pl, Planet* from) const;
 };
 
 #endif // MY_BOT_H

@@ -11,7 +11,7 @@
    2. the degree of aggression in the frontier-planet selection 
    3. precision of calculating ships needed to conquer neutral planets
 
-   TODO: -implement a panic()-function. When I have fewer ships than the enemy, and my production rate and predicted production rate is lower too, attack the enemy with full force.
+   TODO: -implement maxOutgoingShips[planet][turn], this can be computed once at the beginning of the turn (and after every order), making compFleets() and worstFleets() much faster, and more correct
    -make the prediction-architecture more efficient (fewer redundant calculations)
    -find a more elegant concept of target-validity
    -put utility-functions in separate class
@@ -267,7 +267,7 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
     for(Planets::const_iterator p = planets.begin(); p!= planets.end(); ++p) {
         Planet* destination = *p;
         int dist = source->distance(destination);
-        if(dist <= turnsRemaining){
+        if(dist <= turnsRemaining ){
           int shipsAvailableCompetitive = shipsAvailable(competitivePredictions[source], dist*2);
           if (shipsAvailableStatic < 0 && predictions[source][1].owner()->isEnemy()) {
             shipsAvailableStatic = source->shipsCount();
@@ -299,7 +299,7 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
             if (valid) {
               //add orders to the order candidates. 
               //Since there is time pressure I can not take all possible orders for this source and target, and instead try to cover the most important ones
-              if (protects(source, destination)) {
+              if (protects(source, destination) || destination->owner()->isMe()) {
                 int sc = shipsRequired;
                 orderCandidates.push_back(Order(source, destination, sc));
               } else if (source->frontierStatus) {
@@ -582,9 +582,9 @@ vector<Fleet> MyBot::competitiveFleets(Planet* pl) {
             if (!pFuture->owner()->isNeutral()) {
                 int sc;
                 if (i == 0) {
-                    sc = pFuture->shipsCount();
+                  sc = pFuture->shipsCount();
                 } else {
-                    sc = pFuture->shipsCount()-sent;
+                  sc = pFuture->shipsCount()-sent;
                 } 
                 if (sc>0) {
                     sent += sc;
@@ -787,5 +787,18 @@ int MyBot::shipsAvailable(const vector<Planet>& predictions, int t) const{
 }
       
 
+Planet* MyBot::coveredBy(Planet* pl, Planet* from) const{
+  Planets closest = from->closestPlanets();
+  for(Planets::const_iterator pit = closest.begin(); pit != closest.end(); ++pit){
+    Planet* p = *pit;
+    if (p == pl){
+      return pl;
+    }
+    if(from->distance(p)+p->distance(pl) == from->distance(pl)){
+      return p;
+    }
+  }
+  return pl;
+}
   
 
