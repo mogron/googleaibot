@@ -267,7 +267,7 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
     for(Planets::const_iterator p = planets.begin(); p!= planets.end(); ++p) {
         Planet* destination = *p;
         int dist = source->distance(destination);
-        if(dist <= turnsRemaining ){
+        if(dist <= turnsRemaining && dist <= maxDistanceBetweenPlanets/2){
           int shipsAvailableCompetitive = shipsAvailable(competitivePredictions[source], dist*2);
           if (shipsAvailableStatic < 0 && predictions[source][1].owner()->isEnemy()) {
             shipsAvailableStatic = source->shipsCount();
@@ -299,9 +299,17 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
             if (valid) {
               //add orders to the order candidates. 
               //Since there is time pressure I can not take all possible orders for this source and target, and instead try to cover the most important ones
+              vector<int> shipsToSendCandidates;
+              shipsToSendCandidates.push_back(shipsRequired);
+              shipsToSendCandidates.push_back(shipsAvailableStatic);
+              shipsToSendCandidates.push_back(shipsAvailableCompetitive);
+              shipsToSendCandidates.push_back(source->shipsCount());
+              std::sort(shipsToSendCandidates.begin(), shipsToSendCandidates.end());
               if (protects(source, destination) || destination->owner()->isMe()) {
-                int sc = shipsRequired;
-                orderCandidates.push_back(Order(source, destination, sc));
+                orderCandidates.push_back(Order(source, destination, shipsToSendCandidates.at(0)));
+              } else if (protects(destination, source)) {
+                orderCandidates.push_back(Order(source, destination, shipsToSendCandidates.back()));
+                orderCandidates.push_back(Order(source, destination, shipsToSendCandidates.at(shipsToSendCandidates.size()-2)));
               } else if (source->frontierStatus) {
                 if (protects(destination, source)) {
                   orderCandidates.push_back( Order(source, destination, shipsAvailableStatic));
@@ -802,3 +810,17 @@ Planet* MyBot::coveredBy(Planet* pl, Planet* from) const{
 }
   
 
+int MyBot::potential(Planet* pl) const{
+  int pot(0);
+  Planets closest = pl->closestPlanets();
+  for(Planets::const_iterator pit = closest.begin(); pit != closest.end(); ++pit){
+    Planet* p = pit;
+    if(pl->distance(p) > maxDistanceBetweenPlanets){
+      break;
+    }
+    if(!p->owner->isMe()){
+      pot += p->growthRate();
+    }
+  }
+  return pot;
+}

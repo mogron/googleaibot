@@ -71,6 +71,7 @@ public:
     int distance(const Planets& ps1, const Planets& ps2) const;
     Planet* nearestEnemyPlanet(Planet* pl) const;
     Planet* coveredBy(Planet* pl, Planet* from) const;
+    int potential(Planet* pl) const;
 };
 
 #endif // MY_BOT_H
