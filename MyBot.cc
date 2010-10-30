@@ -61,7 +61,7 @@ void MyBot::executeTurn() {
     } 
 
 
-    const int maxActions = 20;
+    const int maxActions = 100;
     for(int actions(0); actions != maxActions; ++actions) {
         //find a good action and execute it, if possible
         if (!chooseAction()) { 
@@ -73,8 +73,8 @@ void MyBot::executeTurn() {
     supply();
 
     bool badSituation = me->shipsCount() < enemy->shipsCount() 
-      && me->growthRate() < enemy->growthRate()
-      && myPredictedGrowthRate(lookahead) < enemyPredictedGrowthRate(lookahead);
+      && (me->growthRate() < enemy->growthRate()
+          || myPredictedGrowthRate(lookahead) < enemyPredictedGrowthRate(lookahead));
     if(badSituation){
       panic();
     }
@@ -264,6 +264,7 @@ void MyBot::panic(){
 //there is a lot of finetuning for special cases in this function, that makes it somewhat ugly.
 void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
     int shipsAvailableStatic = shipsAvailable(predictions[source],lookahead);
+    Planets sourceCluster = cluster(source);
     for(Planets::const_iterator p = planets.begin(); p!= planets.end(); ++p) {
         Planet* destination = *p;
         int dist = source->distance(destination);
@@ -286,7 +287,7 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
             }
             int shipsRequiredWorstCase = worstCasePredictions[destination][dist].shipsCount()+1;
             //the conditions for validity make sure that my bot is not too aggressive, and does not attack neutrals when the enemy can snipe
-            bool valid =  shipsRequired <= max(shipsAvailableCompetitive, shipsAvailableStatic) 
+            bool valid =  (shipsRequired <= max(shipsAvailableCompetitive, shipsAvailableStatic) 
               &&!(futureDestination.owner()->isNeutral() 
                   && me->shipsCount()*2 < enemy->shipsCount()  ) 
               && !(futureDestination.owner()->isEnemy() 
@@ -295,28 +296,19 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
                   || competitivePredictions[destination][min(lookahead, 2*dist)].owner()->isMe()
                   || (me->growthRate() < enemy->growthRate() 
                       && myPredictedGrowth < enemyPredictedGrowth)
-                  || me->shipsCount() > enemy->shipsCount() + shipsRequired);
+                  || me->shipsCount() > enemy->shipsCount() + shipsRequired)) ;
             if (valid) {
               //add orders to the order candidates. 
               //Since there is time pressure I can not take all possible orders for this source and target, and instead try to cover the most important ones
-              vector<int> shipsToSendCandidates;
-              shipsToSendCandidates.push_back(shipsRequired);
-              shipsToSendCandidates.push_back(shipsAvailableStatic);
-              shipsToSendCandidates.push_back(shipsAvailableCompetitive);
-              shipsToSendCandidates.push_back(source->shipsCount());
-              std::sort(shipsToSendCandidates.begin(), shipsToSendCandidates.end());
               if (protects(source, destination) || destination->owner()->isMe()) {
-                orderCandidates.push_back(Order(source, destination, shipsToSendCandidates.at(0)));
-              } else if (protects(destination, source)) {
-                orderCandidates.push_back(Order(source, destination, shipsToSendCandidates.back()));
-                orderCandidates.push_back(Order(source, destination, shipsToSendCandidates.at(shipsToSendCandidates.size()-2)));
+                orderCandidates.push_back(Order(source, destination, shipsRequired));
               } else if (source->frontierStatus) {
-                if (protects(destination, source)) {
+                if (protects(destination, source) && destination->owner()->isMe()) {
                   orderCandidates.push_back( Order(source, destination, shipsAvailableStatic));
                 }
                 orderCandidates.push_back(Order(source, destination, shipsAvailableCompetitive));
                 if (shipsRequired < shipsAvailableCompetitive) {
-                  orderCandidates.push_back(Order(source, destination, shipsAvailableCompetitive));
+                  orderCandidates.push_back(Order(source, destination, shipsRequired));
                 }
                 if (dist * 2 <= source->distance(enemyPlanets)) {
                   orderCandidates.push_back(Order(source, destination, shipsRequired));
@@ -402,16 +394,18 @@ void MyBot::setExpansionTargets(){
 
     for(Planets::const_iterator pit = enemyPlanets.begin(); pit != enemyPlanets.end(); ++pit) {
       Planet* p = *pit;
-      if(competitivePredictions[p][lookahead].owner()->isMe()){
+      if (competitivePredictions[p][lookahead].owner()->isMe()) {
         p->frontierStatus = true;
-      }
-      for(Planets::const_iterator pit2 = planets.begin(); pit2 != planets.end(); ++pit2) {
-        Planet* p2 = *pit2;
-        if (p2->planetID() != p->planetID() &&  protects(p, p2)) {
-          p2->frontierStatus = false;
+        for(Planets::const_iterator pit2 = planets.begin(); pit2 != planets.end(); ++pit2) {
+            Planet* p2 = *pit;
+            if (p2->planetID() != p->planetID() &&  protects(p, p2)) {
+                p2->frontierStatus = false;
+            }
         }
       }
     }
+
+
 }
 
 //evaluates a list of predictions for a planet. This is used to calculate the value of an action/order.
@@ -467,6 +461,21 @@ bool MyBot::isProtectedFrom(Planet* pl, Planet* from) const{
         }
     }
     return false;
+}
+
+Planet* MyBot::isProtectedFromBy(Planet* pl, Planet* from) const{
+    Planets closest = pl->closestPlanets();
+    int dist = from->distance(pl);
+    for(Planets::const_iterator pit = closest.begin(); pit != closest.end(); ++pit) {
+        Planet* p = *pit;
+        if (p->owner() == pl->owner() && protects(p, pl, from)) {
+            return p;
+        }
+        if (p->distance(pl) > dist) {
+            return pl;
+        }
+    }
+    return pl;
 }
 
 
@@ -814,13 +823,31 @@ int MyBot::potential(Planet* pl) const{
   int pot(0);
   Planets closest = pl->closestPlanets();
   for(Planets::const_iterator pit = closest.begin(); pit != closest.end(); ++pit){
-    Planet* p = pit;
+    Planet* p = *pit;
     if(pl->distance(p) > maxDistanceBetweenPlanets){
       break;
     }
-    if(!p->owner->isMe()){
+    if(!p->owner()->isMe()){
       pot += p->growthRate();
     }
   }
   return pot;
+}
+
+
+Planets MyBot::cluster(Planet* pl) const{
+  Planets clusterPlanets;
+  clusterPlanets.push_back(pl);
+  Planet* p = nearestFrontierPlanet(pl);
+  Planets closest = p->closestPlanets();
+  for(Planets::iterator pit = closest.begin(); pit != closest.end(); ++pit){
+    Planet* p2 = *pit;
+    if (p2->frontierStatus){
+      return clusterPlanets;
+    }
+    if (p2->owner()->isMe()){
+      clusterPlanets.push_back(p2);
+    }
+  }
+  return clusterPlanets;
 }

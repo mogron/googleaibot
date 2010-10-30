@@ -63,6 +63,7 @@ public:
     bool protects(Planet* protector, Planet* protectee, Planet* from) const;
     bool protects(Planet* protector, Planet* protectee) const;
     bool isProtectedFrom(Planet* pl, Planet* from) const;
+    Planet* isProtectedFromBy(Planet* pl, Planet* from) const;
     bool isProtected(Planet* pl) const;
     Planet* nearestFrontierPlanet(Planet* pl) const;
     int distanceToFrontier(Planet* pl) const;
@@ -72,6 +73,7 @@ public:
     Planet* nearestEnemyPlanet(Planet* pl) const;
     Planet* coveredBy(Planet* pl, Planet* from) const;
     int potential(Planet* pl) const;
+    Planets cluster(Planet* pl) const;
 };
 
 #endif // MY_BOT_H
