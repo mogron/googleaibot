@@ -32,6 +32,7 @@ public:
     Player* me;
     Player* enemy;
     int lookahead;
+    bool logging;
 
 
     //action finding:
@@ -48,9 +49,12 @@ public:
 
     
     //predictions:
+    void updatePredictions();
     std::map<Planet*, std::vector<Planet > > predictions;
     std::map<Planet*, std::vector<Planet > > competitivePredictions;
     std::map<Planet*, std::vector<Planet > > worstCasePredictions;
+    std::map<Planet*, std::vector<Fleet > > maxOutgoingFleets;
+    vector<Fleet> computeMaxOutgoingFleets(Planet* pl);
     std::vector<Fleet> competitiveFleets(Planet* pl);
     std::vector<Fleet> worstCaseFleets(Planet* pl);
     int willHoldFor(const vector<Planet>& predictions, int t) const;
@@ -71,9 +75,13 @@ public:
     bool isFrontier(Planet* pl) const;
     int distance(const Planets& ps1, const Planets& ps2) const;
     Planet* nearestEnemyPlanet(Planet* pl) const;
+    Planet* nearestFriendlyPlanet(Planet* pl) const;
     Planet* coveredBy(Planet* pl, Planet* from) const;
     int potential(Planet* pl) const;
     Planets cluster(Planet* pl) const;
+    bool willHoldAtSomePoint(const vector<Planet>& preds) const;
+
+    void issueOrder(Order o, string reason);
 };
 
 #endif // MY_BOT_H

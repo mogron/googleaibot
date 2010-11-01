@@ -87,6 +87,16 @@ int Player::shipsCount()
   return sc;
 }
 
+int Player::shipsOnPlanets()
+{
+  int sc = 0;
+  for (Planets::iterator pit = planets_m.begin(); pit != planets_m.end(); ++pit){
+    Planet* p = *pit;
+    sc += p->shipsCount();
+  }
+  return sc;
+}
+
 int Player::growthRate(){
   int gr = 0;
   for (Planets::iterator pit = planets_m.begin(); pit != planets_m.end(); ++pit){

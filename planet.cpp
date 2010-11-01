@@ -44,7 +44,7 @@ void Planet::update(const Player* owner, uint shipsCount)
     shipsCount_m = shipsCount;
 }
 
-uint Planet::planetID() const
+int Planet::planetID() const
 {
     return planetID_m;
 }
@@ -54,12 +54,12 @@ const Player* Planet::owner() const
     return owner_m;
 }
 
-uint Planet::shipsCount() const
+int Planet::shipsCount() const
 {
     return shipsCount_m;
 }
 
-uint Planet::growthRate() const
+int Planet::growthRate() const
 {
     return growthRate_m;
 }
@@ -114,34 +114,41 @@ int Planet::distance(const Planets& ps)
   return dist;
 }
 
-vector<Planet> Planet::getPredictions(int t)
+vector<Planet> Planet::getPredictions(int t, int start)
 {
   vector<Fleet> fs;
-  return getPredictions(t, fs);
+  return getPredictions(t, fs, start);
 }
 
-vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs) 
+vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs, int start) 
 {
   vector<Planet> predictions;
   Planet p(*this);
-  for(int i(0);i!=t+1;i++){
-    if(i!=0 && !p.owner_m->isNeutral()){
+  for (vector<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
+    if (f->sourcePlanet() == this && f->turnsRemaining() - start == this->distance(f->destinationPlanet())){
+      p.shipsCount_m -= f->shipsCount();
+    }
+  }
+  predictions.push_back(p);
+  for(int i(1);i!=t+1;i++){
+    if(!p.owner_m->isNeutral()){
       p.shipsCount_m += p.growthRate_m;
     }
     std::map<const Player*,int> participants;
     participants[p.owner_m] = p.shipsCount_m;
+    
     for (Fleets::iterator it = incomingFleets_m.begin(); it != incomingFleets_m.end(); ++it ) {
       Fleet* f = *it;
-      if (f->turnsRemaining() == i ) {
+      if (f->turnsRemaining() - start == i ) {
         participants[f->owner()] += f->shipsCount();
       }
     }
 
     for (vector<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
-      if (f->destinationPlanet() == this && f->turnsRemaining() == i ) {
+      if (f->destinationPlanet() == this && f->turnsRemaining() - start == i ) {
         participants[f->owner()] += f->shipsCount();
       }
-      if (f->sourcePlanet() == this && f->turnsRemaining()-i == this->distance(f->destinationPlanet())){
+      if (f->sourcePlanet() == this && f->turnsRemaining() - start -i == this->distance(f->destinationPlanet())){
         participants[f->owner()] -= f->shipsCount();
       }
      }

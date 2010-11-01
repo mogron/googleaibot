@@ -20,6 +20,7 @@ public:
     bool operator != (const Player& player) const;
 
     int shipsCount();
+    int shipsOnPlanets();
     int growthRate();
 private:
     uint playerID() const;

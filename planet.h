@@ -12,11 +12,11 @@ public:
     Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner);
     Planet();
 
-    std::vector<Planet> getPredictions(int t, std::vector<Fleet> fs);
-    std::vector<Planet> getPredictions(int t);
-    uint planetID() const;
-    uint shipsCount() const;
-    uint growthRate() const;
+    std::vector<Planet> getPredictions(int t, std::vector<Fleet> fs, int start = 0);
+    std::vector<Planet> getPredictions(int t, int start = 0);
+    int planetID() const;
+    int shipsCount() const;
+    int growthRate() const;
     const Player* owner() const;
 
 
@@ -41,7 +41,7 @@ public:
     bool frontierStatus;
     bool predictedMine;
 
-
+    uint shipsCount_m;
 private:
     void update(const Player* owner, uint shipsCount);
     void setOtherPlanets(const Planets& planets);
@@ -50,7 +50,6 @@ private:
     void clearFleets();
 
     uint planetID_m;
-    uint shipsCount_m;
     uint growthRate_m;
     Point coordinate_m;
     const Player* owner_m;
