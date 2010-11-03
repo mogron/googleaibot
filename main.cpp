@@ -3,6 +3,10 @@
 
 #include <sys/time.h>
 #include <stdio.h>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
 
 // This is just the main game loop that takes care of communicating with the game engine for you.
 int main() {
@@ -35,6 +39,7 @@ int main() {
             currentLine = "";
         }
     }
+    cerr << "Program will now quit" << endl;
     return 0;
 }
 

@@ -71,6 +71,7 @@ void MyBot::executeTurn() {
     }
   }
 
+
   updatePredictions();
   
   bool badSituation = me->shipsCount() < enemy->shipsCount()
@@ -208,7 +209,7 @@ void MyBot::firstTurn() {
   Planets candidates;
   for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit) {
     Planet* p = *pit;
-    if (p->distance(myStartingPlanet) < p->distance(enemyStartingPlanet)) {
+    if (p->distance(myStartingPlanet) <= p->distance(enemyStartingPlanet)) {
       candidates.push_back(p);
     }
   }
@@ -355,7 +356,7 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
           if (protects(source, destination) || destination->owner()->isMe()) {
             orderCandidates.push_back(Order(source, destination, shipsRequired));
           } else if (source->frontierStatus) {
-            if (protects(destination, source) && destination->owner()->isMe()) {
+            if (protects(destination, source) || destination->owner()->isMe()) {
               orderCandidates.push_back( Order(source, destination, shipsAvailableStatic));
             }
             orderCandidates.push_back(Order(source, destination, shipsAvailableCompetitive));
@@ -390,9 +391,7 @@ int MyBot::value(Order* oit){
   Fleet f(myPlanets[0]->owner(), source, destination, oit->shipsCount, dist, dist);
   fs.push_back(f);
   if (predictions[destination][dist].owner()->isNeutral()) {  //some tougher payoff conditions for neutral planets
-    vector<Fleet> wfsSource = worstCaseFleets(source);
     vector<Fleet> wfsDest = worstCaseFleets(destination);
-    wfsSource.push_back(f);
     wfsDest.push_back(f);
     //a neutral planet has to pay off even in the worst case:
     if (willHoldFor(destination->getPredictions(lookahead,wfsDest), dist)*destination->growthRate() < destination->shipsCount()) { 
@@ -737,7 +736,7 @@ Planets MyBot::knapsack01(const Planets& candidates, int maxWeight) const{
   for (Planets::const_iterator pit = candidates.begin(); pit != candidates.end(); ++pit) {
     Planet* p = *pit;
     weights.push_back(p->shipsCount() + 1);
-    values.push_back(p->growthRate()*(myStartingPlanet->distance(enemyStartingPlanet)-p->distance(myStartingPlanet)));
+    values.push_back(p->growthRate())*(myStartingPlanet->distance(enemyStartingPlanet)-p->distance(myStartingPlanet)));
 
   }
 
