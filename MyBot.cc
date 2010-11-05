@@ -28,6 +28,7 @@
 #include "order.h"
 #include "planet.h"
 #include "player.h"
+#include "knapsackTarget.h"
 
 using std::min;
 using std::max;
@@ -45,17 +46,29 @@ MyBot::MyBot(Game* game) :
 
 //the entry function, this is called by the game engine
 void MyBot::executeTurn() {
-  cerr << "Turn: " << game->turn() << endl;
+  if(logging){
+    cerr << "Turn: " << game->turn() << endl;
+  }
   
   if (game->turn() == 1) {
     initialize();
-    cerr << "MaxDistanceBetweenPlanets: " << maxDistanceBetweenPlanets << endl;
     preprocessing();
-    firstTurn();
-    return;
+    myStartingPlanet = myPlanets[0];
+    enemyStartingPlanet = enemyPlanets[0];
+    if(logging){
+      cerr << "MaxDistanceBetweenPlanets: " << maxDistanceBetweenPlanets << endl;
+      cerr << "Distance between me and enemy: " << myStartingPlanet->distance(enemyStartingPlanet) << endl;
+    }
   }
 
   preprocessing();
+
+  if (game->turn() < myStartingPlanet->distance(enemyStartingPlanet) / 2){
+    openingTurn();
+    return;
+  }
+
+
 
   //this prevents timeouts caused by a certain bug in the game engine:
   if (myPlanets.size() == 0 || enemyPlanets.size() ==0) { 
@@ -73,7 +86,10 @@ void MyBot::executeTurn() {
 
 
   updatePredictions();
-  
+
+  if(logging){
+    cerr << "checking for bad situation" << endl;
+  }
   bool badSituation = me->shipsCount() < enemy->shipsCount()
     && game->turn() > maxDistanceBetweenPlanets
     && ((me->growthRate() < enemy->growthRate()
@@ -81,6 +97,9 @@ void MyBot::executeTurn() {
         || (turnsRemaining < maxDistanceBetweenPlanets*2
             && me->growthRate() <= enemy->growthRate()
             && myPredictedGrowthRate(lookahead) <= enemyPredictedGrowthRate(lookahead)));
+  if(logging){
+    cerr << "finished checking for bad situation" << endl;
+  }
   if(badSituation){
     panic();
     updatePredictions();
@@ -109,14 +128,18 @@ void MyBot::executeTurn() {
       issueOrder(o, "domination");
     }
   }
-
-  cerr << "Turn finished" << endl;
+  if(logging){
+    cerr << "Turn finished" << endl;
+  }
 }
 
 
 //this function is called only in turn 1, 
 //and can be used for computing static properties of the map
 void MyBot::initialize() {
+  if(logging){
+    cerr << "initializing..." << endl;
+  }
   //calculate the size of the map, defined as the maximum distance between two planets
   maxDistanceBetweenPlanets = 1;
   const Planets planets = game->planets();
@@ -132,11 +155,17 @@ void MyBot::initialize() {
   }
   enemy = game->playerByID(2);
   me = game->playerByID(1);
+  if(logging){
+    cerr << "initializing finished" << endl;
+  }
 }
 
 
 //this updates the things that change from turn to turn, and makes predictions on planets future states
 void MyBot::preprocessing() {
+  if(logging){
+    cerr << "preprocessing..." << endl;
+  }
   const int turnLimit = 200; //according to the contest organizators, this will probably continue to be the turn limit until the end of the contest.
   turnsRemaining = turnLimit - game->turn();
   myPlanets = game->myPlanets();
@@ -149,13 +178,20 @@ void MyBot::preprocessing() {
   updatePredictions();
   for(Planets::const_iterator pit = myPlanets.begin();pit!=myPlanets.end();++pit) {
     Planet* p = *pit;
-    cerr << p->planetID() << ": comp: " << shipsAvailable(competitivePredictions[p], lookahead) << "; static: " << shipsAvailable(predictions[p], lookahead) <<  endl;
+    if(logging){
+      cerr << p->planetID() << ": comp: " << shipsAvailable(competitivePredictions[p], lookahead) << "; static: " << shipsAvailable(predictions[p], lookahead) <<  endl;
+    }
   }
-
+  if(logging){
+    cerr << "preprocessing finished" << endl;
+  }
 }
 
 
 void MyBot::updatePredictions(){
+  if(logging){
+    cerr << "updating predictions..." << endl;
+  }
   predictions.clear();
   competitivePredictions.clear();
   worstCasePredictions.clear();
@@ -165,10 +201,16 @@ void MyBot::updatePredictions(){
     Planet* p = *pit;
     predictions[p] = p->getPredictions(lookahead);
   }
+  if(logging){
+    cerr << "updated static predictions..." << endl;
+  }
 
   for(Planets::const_iterator pit = planets.begin();pit!=planets.end();++pit) {
     Planet* p = *pit;
     maxOutgoingFleets[p] = computeMaxOutgoingFleets(p);
+  }
+  if(logging){
+    cerr << "updated max outgoing fleets..." << endl;
   }
 
   //special-case predictions for each planet. It is important that the static predictions happen before this.
@@ -177,11 +219,13 @@ void MyBot::updatePredictions(){
     worstCasePredictions[p] = p->getPredictions(lookahead, worstCaseFleets(p));
     competitivePredictions[p] = p->getPredictions(lookahead, competitiveFleets(p));
   }
+  if(logging){
+    cerr << "updated competitive and worst-case predictions..." << endl;
+  }
 
 
   //determine which planets I could conquer according to current predictions.
   //These planets are candidates for frontier planets, even though I don't own them yet
-  //TODO: this information should be updated immediately before computing supply lines
   for(Planets::const_iterator pit = planets.begin();pit!=planets.end();++pit) {
     Planet* p = *pit;
     p->predictedMine = false;
@@ -191,43 +235,75 @@ void MyBot::updatePredictions(){
       }
     }
   }
+  if(logging){
+    cerr << "updated \"predicted mine\"..." << endl;
+  }
 
   for(Planets::const_iterator pit = planets.begin();pit!=planets.end();++pit) {
     Planet* p = *pit;
     p->frontierStatus = isFrontier(p);
   }
+  if(logging){
+    cerr << "updated frontier planets..." << endl;
+  }
 
   myPredictedGrowth = myPredictedGrowthRate(lookahead); 
   enemyPredictedGrowth = enemyPredictedGrowthRate(lookahead);
+  if(logging){
+    cerr << "set predicted growth rates..." << endl;
+  }
+  if(logging){
+    cerr << "updating predictions finished" << endl;
+  }
 }
 
-//this is executed in the first turn of the game. 
+//this is executed in the opening of the game. 
 //Tries to allocate ships in a way that maximizes growth (by solving a knapsack01-problem), while not exposing the starting planet.
-void MyBot::firstTurn() {
-  myStartingPlanet = myPlanets[0];
-  enemyStartingPlanet = enemyPlanets[0];
-  Planets candidates;
+void MyBot::openingTurn() {
+  if(logging){
+    cerr << "opening turn started..." << endl;
+  }
+  vector<KnapsackTarget> candidates;
   for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit) {
     Planet* p = *pit;
-    if (p->distance(myStartingPlanet) <= p->distance(enemyStartingPlanet)) {
-      candidates.push_back(p);
+    if (!predictions[p][lookahead].owner()->isMe() && p->distance(myStartingPlanet) + game->turn() <= p->distance(enemyStartingPlanet)) {
+      for(int i(game->turn() + p->distance(myStartingPlanet)); i <= p->distance(enemyStartingPlanet) - game->turn() ; ++i){ 
+        KnapsackTarget kt;
+        kt.p = predictions[p][i];
+        kt.value = p->growthRate()*(maxDistanceBetweenPlanets - i); 
+        kt.t = i;
+        kt.weight = predictions[p][i].shipsCount() + 1;
+        candidates.push_back(kt);
+        if(logging){
+          cerr << "added knapsack candidate: planete " << p->planetID() << " in turn " << i << ", has value " << kt.value << endl;
+        }
+      }
     }
   }
     
-  int shipsAvailable = min(myStartingPlanet->shipsCount(), 
-                           myStartingPlanet->growthRate() * myStartingPlanet->distance(enemyStartingPlanet));
+  int maxWeight = shipsAvailable(competitivePredictions[myStartingPlanet], lookahead);
       
-  Planets targets = knapsack01(candidates,shipsAvailable);
-  for(Planets::const_iterator pit = targets.begin(); pit != targets.end(); ++pit) {
-    Planet* p = *pit;
-    Order o(myStartingPlanet, p, p->shipsCount() + 1); 
-    issueOrder(o, "first turn knapsack move.");
+  vector<KnapsackTarget> targets = knapsack01(candidates,maxWeight);
+  cerr << "Knapsack01 found " << targets.size() << " targets" << endl;
+  for(vector<KnapsackTarget>::const_iterator kt = targets.begin(); kt != targets.end(); ++kt) {
+    cerr << "knapsack target: " << kt->p.planetID() << " in turn " << kt->t << endl;
+    Planet* p = game->planetByID(kt->p.planetID());
+    if(kt->t == game->turn() + myStartingPlanet->distance(p)){
+      Order o(myStartingPlanet, p, p->shipsCount() + 1); 
+      issueOrder(o, "opening turn knapsack move.");
+    }
+  }
+  if(logging){
+    cerr << "opening turn finished" << endl;
   }
 }
 
 
 //tries to find a good action and executes it, returns true on success.
 bool MyBot::chooseAction() {
+  if(logging){
+    cerr << "started chooseAction..." << endl;
+  }
   Orders orderCandidates;
   for(Planets::const_iterator p = myPlanets.begin(); p!= myPlanets.end(); ++p) {
     Planet* source = *p;
@@ -250,8 +326,14 @@ bool MyBot::chooseAction() {
   if (maxValue>0 && maxOrder && maxOrder->isValid()) {
     issueOrder(*maxOrder, "action evaluation");
     updatePredictions();
+    if(logging){
+      cerr << "finished chooseAction" << endl;
+    }
     return true;
   } else {
+    if(logging){
+      cerr << "finished chooseAction, found none" << endl;
+    }
     return false;
   }
 }
@@ -259,6 +341,9 @@ bool MyBot::chooseAction() {
 
 //manages the supply chain
 void MyBot::supply() {
+  if(logging){
+    cerr << "supply started..." << endl;
+  }
   //find attractive neutral planets, so there will be sent ships towards them via the supply lines:
   setExpansionTargets();
   
@@ -286,14 +371,22 @@ void MyBot::supply() {
         Order o(p, target, min(shipsAvail[p], predictions[target][lookahead].shipsCount() + 1));
         issueOrder(o, "supply");
       } else {
-        cerr << "Planet " << p->planetID() << " did not supply his frontier planet" << target->planetID() << endl;
+        if(logging){
+          cerr << "Planet " << p->planetID() << " did not supply his frontier planet " << target->planetID() << endl;
+        }
       }
     }
+  }
+  if(logging){
+    cerr << "supply ended" << endl;
   }
 }
 
 
 void MyBot::panic(){
+  if(logging){
+    cerr << "panicking!" << endl;
+  }
   for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit){
     Planet* p = *pit;
     if(p->frontierStatus){
@@ -311,11 +404,17 @@ void MyBot::panic(){
       }
     }
   }
+  if(logging){
+    cerr << "panicking finished" << endl;
+  }
 }
 
 //find the order candidates for planet source. Orders are added by modifying the passed-by-ref orderCandidates.
 //there is a lot of finetuning for special cases in this function, that makes it somewhat ugly.
 void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
+  if(logging){
+    cerr << "adding order candidates for planet " << source->planetID() << "..." <<  endl;
+  }
   int shipsAvailableStatic = shipsAvailable(predictions[source],lookahead);
   if (shipsAvailableStatic < 0 && willHoldFor(predictions[source], 0) < source->distance(nearestFriendlyPlanet(source))) {
     shipsAvailableStatic = source->shipsCount();
@@ -323,6 +422,9 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
   Planets sourceCluster = cluster(source);
   for(Planets::const_iterator p = planets.begin(); p!= planets.end(); ++p) {
     Planet* destination = *p;
+    if(logging){
+      cerr << "considering target " << destination->planetID() <<endl;
+    }
     int dist = source->distance(destination);
     if(destination != source && dist <= turnsRemaining && dist <= maxDistanceBetweenPlanets){
       int shipsAvailableCompetitive = shipsAvailable(competitivePredictions[source], dist*2);
@@ -351,6 +453,9 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
                   && myPredictedGrowth < enemyPredictedGrowth)
               || me->shipsCount() > enemy->shipsCount() + shipsRequired);
         if (valid) {
+          if(logging){
+            cerr << "target " << destination->planetID() << " is valid. Adding orders" << endl;
+          }
           //add orders to the order candidates. 
           //Since there is time pressure I can not take all possible orders for this source and target, and instead try to cover the most important ones
           if (protects(source, destination) || destination->owner()->isMe()) {
@@ -376,9 +481,16 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
               orderCandidates.push_back(Order (source, destination, shipsRequiredWorstCase));
             }
           }
+        } else {
+          if(logging){
+            cerr << "target " << destination->planetID() << " is invalid." << endl;
+          }
         }
       }
     }
+  }
+  if(logging){
+    cerr << "finished adding order candidates for planet " << source->planetID() << endl;
   }
 }
 
@@ -435,7 +547,9 @@ void MyBot::setExpansionTargets(){
   }
   if (fastestPayoff < maxDistanceBetweenPlanets && fastestPayoffPlanet) {
     fastestPayoffPlanet->frontierStatus = true;
-    cerr << "Set expansion target: " << fastestPayoffPlanet->planetID() << endl;
+    if(logging){
+      cerr << "Set expansion target: " << fastestPayoffPlanet->planetID() << endl;
+    }
     for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit) {
       Planet* p = *pit;
       if (p != fastestPayoffPlanet &&  protects(fastestPayoffPlanet, p)) {
@@ -458,9 +572,6 @@ void MyBot::setExpansionTargets(){
     }
   }
 
-  if(fastestPayoffPlanet){
-    cerr << fastestPayoffPlanet->frontierStatus << endl;
-  }
 
 }
 
@@ -595,7 +706,9 @@ bool MyBot::isFrontier(Planet* pl) const{
       for(Planets::iterator pit2 = p_closest.begin(); pit2 != p_closest.end(); ++pit2) {
         Planet* p2 = *pit2;
         if (p2->planetID() == pl->planetID()) {
-          cerr << "Planet " << pl->planetID() << " has been set as Frontier by isFrontier()" << endl;
+          if(logging){
+            cerr << "Planet " << pl->planetID() << " has been set as Frontier by isFrontier()" << endl;
+          }
           return true;
         }
         if (p2->owner()->isMe()  && p2->distance(pl) < pl->distance(p)) {
@@ -729,15 +842,13 @@ int MyBot::willHoldFor(const vector<Planet>& predictions,int t) const{
 
 //A dynamic programming solution to the knapsack01-problem.
 //This is used in the first turn to allocate ships in a way that maximizes the production rate.
-Planets MyBot::knapsack01(const Planets& candidates, int maxWeight) const{
+vector<KnapsackTarget> MyBot::knapsack01(const vector<KnapsackTarget>& candidates, int maxWeight) const{
   vector<int> weights;
   vector<int> values;
 
-  for (Planets::const_iterator pit = candidates.begin(); pit != candidates.end(); ++pit) {
-    Planet* p = *pit;
-    weights.push_back(p->shipsCount() + 1);
-    values.push_back(p->growthRate())*(myStartingPlanet->distance(enemyStartingPlanet)-p->distance(myStartingPlanet)));
-
+  for (vector<KnapsackTarget>::const_iterator kt = candidates.begin(); kt != candidates.end(); ++kt) {
+    weights.push_back(kt->weight);
+    values.push_back(kt->value);
   }
 
   int K[weights.size()+1][maxWeight];
@@ -757,16 +868,16 @@ Planets MyBot::knapsack01(const Planets& candidates, int maxWeight) const{
 
   int i = weights.size();
   int currentW = maxWeight-1;
-  Planets markedPlanets;
+  vector<KnapsackTarget> markedTargets;
 
   while ((i > 0) && (currentW >= 0)) {
     if (((i == 0) && (K[i][currentW] > 0)) || (K[i][currentW] != K[i-1][currentW])) {
-      markedPlanets.push_back(candidates[i-1]);
+      markedTargets.push_back(candidates[i-1]);
       currentW = currentW - weights[i-1];
     }
     i--;
   }
-  return markedPlanets;
+  return markedTargets;
 }
 
 
@@ -943,3 +1054,7 @@ void MyBot::issueOrder(Order o, string reason){
   }
   game->issueOrder(o);
 }
+
+
+
+

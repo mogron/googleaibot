@@ -28,6 +28,7 @@ public:
     int distance(const Planets& ps);
     int timeToPayoff() const;
 
+    bool onMySide;
 
     //A* specific stuff:
     float GoalDistanceEstimate( Planet &nodeGoal );
@@ -38,10 +39,14 @@ public:
     
     void PrintNodeInfo(); 
 
+
+
+
     bool frontierStatus;
     bool predictedMine;
 
     uint shipsCount_m;
+    Fleets incomingFleets_m;
 private:
     void update(const Player* owner, uint shipsCount);
     void setOtherPlanets(const Planets& planets);
@@ -56,7 +61,6 @@ private:
 
     // Pointers to all other planets. Sorted by distance in ascending order.
     Planets closestPlanets_m;
-    Fleets incomingFleets_m;
     Fleets leavingFleets_m;
 
 };

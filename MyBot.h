@@ -4,6 +4,7 @@
 #include "abstractbot.h"
 #include "defines.h"
 #include "planet.h"
+#include "knapsackTarget.h"
 #include <vector>
 #include <map>
 
@@ -36,8 +37,8 @@ public:
 
 
     //action finding:
-    void firstTurn();
-    Planets knapsack01(const Planets& planets, int maxWeight) const;
+    void openingTurn();
+    vector<KnapsackTarget> knapsack01(const vector<KnapsackTarget>& planets, int maxWeight) const;
     bool chooseAction();
     void addOrderCandidates(Planet* source, Orders& orderCandidates);
     int value(Order* oit);
