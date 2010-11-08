@@ -9,7 +9,7 @@ class Planet {
     friend class Game;
 public:
     // Initializes a planet.
-    Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner);
+    Planet(int planetID, int shipsCount, int growthRate, Point coordinate, const Player* owner);
     Planet();
 
     std::vector<Planet> getPredictions(int t, std::vector<Fleet> fs, int start = 0);
@@ -29,6 +29,8 @@ public:
     int timeToPayoff() const;
 
     bool onMySide;
+    
+
 
     //A* specific stuff:
     float GoalDistanceEstimate( Planet &nodeGoal );
@@ -45,17 +47,17 @@ public:
     bool frontierStatus;
     bool predictedMine;
 
-    uint shipsCount_m;
+    int shipsCount_m;
     Fleets incomingFleets_m;
 private:
-    void update(const Player* owner, uint shipsCount);
+    void update(const Player* owner, int shipsCount);
     void setOtherPlanets(const Planets& planets);
     void addIncomingFleet(Fleet* fleet);
     void addLeavingFleet(Fleet* fleet);
     void clearFleets();
 
-    uint planetID_m;
-    uint growthRate_m;
+    int planetID_m;
+    int growthRate_m;
     Point coordinate_m;
     const Player* owner_m;
 

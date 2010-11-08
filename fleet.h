@@ -19,6 +19,8 @@ public:
     uint tripLength() const;
     uint turnsRemaining() const;
 
+    uint turnsRemaining_m;
+
 private:
     const Player* owner_m;
     const Planet* sourcePlanet_m;
@@ -26,7 +28,6 @@ private:
     uint shipsCount_m;
 
     uint tripLenght_m;
-    uint turnsRemaining_m;
 };
 
 #endif // FLEET_H

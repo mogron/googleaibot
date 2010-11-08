@@ -15,7 +15,7 @@ using std::vector;
 using std::cerr;
 using std::endl;
 
-Planet::Planet(uint planetID, uint shipsCount, uint growthRate, Point coordinate, const Player* owner) :
+Planet::Planet(int planetID, int shipsCount, int growthRate, Point coordinate, const Player* owner) :
     planetID_m(planetID),
     shipsCount_m(shipsCount),
     growthRate_m(growthRate),
@@ -38,7 +38,7 @@ Planet::Planet():
 }
 
 
-void Planet::update(const Player* owner, uint shipsCount)
+void Planet::update(const Player* owner, int shipsCount)
 {
     owner_m = owner;
     shipsCount_m = shipsCount;
@@ -125,7 +125,7 @@ vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs, int start)
   vector<Planet> predictions;
   Planet p(*this);
   for (vector<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
-    if (f->sourcePlanet() == this && f->turnsRemaining() - start == this->distance(f->destinationPlanet())){
+    if (f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == this->distance(f->destinationPlanet())){
       p.shipsCount_m -= f->shipsCount();
     }
   }
@@ -145,10 +145,10 @@ vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs, int start)
     }
 
     for (vector<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
-      if (f->destinationPlanet() == this && f->turnsRemaining() - start == i ) {
+      if (f->destinationPlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == i ) {
         participants[f->owner()] += f->shipsCount();
       }
-      if (f->sourcePlanet() == this && f->turnsRemaining() - start -i == this->distance(f->destinationPlanet())){
+      if (f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start -i == this->distance(f->destinationPlanet())){
         participants[f->owner()] -= f->shipsCount();
       }
      }

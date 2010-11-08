@@ -63,7 +63,7 @@ void MyBot::executeTurn() {
 
   preprocessing();
 
-  if (game->turn() < myStartingPlanet->distance(enemyStartingPlanet) / 2){
+  if (game->turn() == 1){
     openingTurn();
     return;
   }
@@ -266,30 +266,30 @@ void MyBot::openingTurn() {
   vector<KnapsackTarget> candidates;
   for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit) {
     Planet* p = *pit;
-    if (!predictions[p][lookahead].owner()->isMe() && p->distance(myStartingPlanet) + game->turn() <= p->distance(enemyStartingPlanet)) {
-      for(int i(game->turn() + p->distance(myStartingPlanet)); i <= p->distance(enemyStartingPlanet) - game->turn() ; ++i){ 
-        KnapsackTarget kt;
-        kt.p = predictions[p][i];
-        kt.value = p->growthRate()*(maxDistanceBetweenPlanets - i); 
-        kt.t = i;
-        kt.weight = predictions[p][i].shipsCount() + 1;
-        candidates.push_back(kt);
-        if(logging){
-          cerr << "added knapsack candidate: planete " << p->planetID() << " in turn " << i << ", has value " << kt.value << endl;
-        }
+    if (!predictions[p][lookahead].owner()->isMe() && p->distance(myStartingPlanet) < p->distance(enemyStartingPlanet)) {
+      KnapsackTarget kt;
+      kt.p = predictions[p][p->distance(myStartingPlanet)];
+      kt.weight = kt.p.shipsCount() + 1;
+      candidates.push_back(kt);
+      if(logging){
+        cerr << "added knapsack candidate: planet " << p->planetID() << endl;
       }
     }
   }
+  for(vector<KnapsackTarget>::iterator kt = candidates.begin(); kt != candidates.end(); ++kt) {
+    kt->value = kt->p.growthRate()*(maxDistanceBetweenPlanets - kt->p.distance(myStartingPlanet)); 
+  }
     
-  int maxWeight = shipsAvailable(competitivePredictions[myStartingPlanet], lookahead);
+  int sa = shipsAvailable(competitivePredictions[myStartingPlanet], lookahead);
+  int maxWeight = sa;
       
   vector<KnapsackTarget> targets = knapsack01(candidates,maxWeight);
   cerr << "Knapsack01 found " << targets.size() << " targets" << endl;
   for(vector<KnapsackTarget>::const_iterator kt = targets.begin(); kt != targets.end(); ++kt) {
-    cerr << "knapsack target: " << kt->p.planetID() << " in turn " << kt->t << endl;
+    cerr << "knapsack target: " << kt->p.planetID() << endl;
     Planet* p = game->planetByID(kt->p.planetID());
-    if(kt->t == game->turn() + myStartingPlanet->distance(p)){
-      Order o(myStartingPlanet, p, p->shipsCount() + 1); 
+    if(kt->weight <= sa){
+      Order o(myStartingPlanet, p, kt->weight); 
       issueOrder(o, "opening turn knapsack move.");
     }
   }
@@ -422,9 +422,6 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
   Planets sourceCluster = cluster(source);
   for(Planets::const_iterator p = planets.begin(); p!= planets.end(); ++p) {
     Planet* destination = *p;
-    if(logging){
-      cerr << "considering target " << destination->planetID() <<endl;
-    }
     int dist = source->distance(destination);
     if(destination != source && dist <= turnsRemaining && dist <= maxDistanceBetweenPlanets){
       int shipsAvailableCompetitive = shipsAvailable(competitivePredictions[source], dist*2);
@@ -451,14 +448,15 @@ void MyBot::addOrderCandidates(Planet* source, Orders& orderCandidates){
               || competitivePredictions[destination][min(lookahead, 2*dist)].owner()->isMe()
               || (me->growthRate() < enemy->growthRate() 
                   && myPredictedGrowth < enemyPredictedGrowth)
-              || me->shipsCount() > enemy->shipsCount() + shipsRequired);
+              || me->shipsCount() > enemy->shipsCount() + shipsRequired
+              || dist <= maxDistanceBetweenPlanets/4);
         if (valid) {
           if(logging){
             cerr << "target " << destination->planetID() << " is valid. Adding orders" << endl;
           }
           //add orders to the order candidates. 
           //Since there is time pressure I can not take all possible orders for this source and target, and instead try to cover the most important ones
-          if (protects(source, destination) || destination->owner()->isMe()) {
+          if (protects(source, destination) || destination->owner()->isMe() || predictions[destination][dist-1].owner()->isMe()) {
             orderCandidates.push_back(Order(source, destination, shipsRequired));
           } else if (source->frontierStatus) {
             if (protects(destination, source) || destination->owner()->isMe()) {
