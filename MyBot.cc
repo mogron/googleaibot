@@ -726,7 +726,10 @@ void MyBot::setExpansionTargets(){
         for(Planets::const_iterator pit = planets.begin(); pit != planets.end(); ++pit) {
             Planet* p = *pit;
             if (p != fastestPayoffPlanet &&  protects(fastestPayoffPlanet, p)) {
+                int dist = p->distance(fastestPayoffPlanet);
                 p->frontierStatus = false;
+                int sa = min(shipsAvailable(predictions[p], dist), shipsAvailable(competitivePredictions[p], dist));
+                issueOrder(Order(p, fastestPayoffPlanet, sa), "quick supply");
             }
         }
     }
@@ -739,7 +742,10 @@ void MyBot::setExpansionTargets(){
             for(Planets::const_iterator pit2 = planets.begin(); pit2 != planets.end(); ++pit2) {
                 Planet* p2 = *pit;
                 if (p2->planetID() != p->planetID() &&  protects(p, p2) && p2->owner()->isMe()) {
-                    p2->frontierStatus = false;
+                    int dist = p->distance(fastestPayoffPlanet);
+                    p->frontierStatus = false;
+                    int sa = min(shipsAvailable(predictions[p], dist), shipsAvailable(competitivePredictions[p], dist));
+                    issueOrder(Order(p, fastestPayoffPlanet, sa), "quick supply");
                 }
             }
         }
