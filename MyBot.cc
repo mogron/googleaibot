@@ -450,6 +450,7 @@ void MyBot::supply() {
     if(logging){
         cerr << "supply started..." << endl;
     }
+    updatePredictions();
     //find attractive neutral planets, so there will be sent ships towards them via the supply lines:
     setExpansionTargets();
   
@@ -463,12 +464,14 @@ void MyBot::supply() {
             shipsAvail[p] = shipsAvailable(predictions[p],lookahead);
             if(shipsAvail[p] < 0){
                 p->frontierStatus = true;
+                if(logging){
+                    cerr << "Planet " << p->planetID() << " is in peril and has been set as frontier" << endl;
+                }
             }
         }
     }
     
 
-    updatePredictions();
 
     //send available ships to the frontier
     for(Planets::const_iterator pit = myPlanets.begin(); pit != myPlanets.end(); ++pit) {
