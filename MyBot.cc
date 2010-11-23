@@ -461,6 +461,9 @@ void MyBot::supply() {
             shipsAvail[p] = 0;
         } else {
             shipsAvail[p] = shipsAvailable(predictions[p],lookahead);
+            if(shipsAvail[p] < 0){
+                p->frontierStatus = true;
+            }
         }
     }
     
