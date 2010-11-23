@@ -3,6 +3,7 @@
 #include <map>
 #include <algorithm>
 #include <vector>
+#include <list>
 #include <iostream>
 #include <cmath>
 #include "stlastar.h"
@@ -116,20 +117,24 @@ int Planet::distance(const Planets& ps)
 
 vector<Planet> Planet::getPredictions(int t, int start)
 {
-  vector<Fleet> fs;
+  list<Fleet> fs;
   return getPredictions(t, fs, start);
 }
 
-vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs, int start) 
+vector <Planet> Planet::getPredictions(int t, list<Fleet> fs, int start) 
 {
   vector<Planet> predictions;
   Planet p(*this);
-  for (vector<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
+  for (list<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
     if (f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == this->distance(f->destinationPlanet())){
       p.shipsCount_m -= f->shipsCount();
+      f = fs.erase(f);
+      if(f==fs.end())
+          break;
     }
   }
   predictions.push_back(p);
+
   for(int i(1);i!=t+1;i++){
     if(!p.owner_m->isNeutral()){
       p.shipsCount_m += p.growthRate_m;
@@ -144,12 +149,17 @@ vector <Planet> Planet::getPredictions(int t, vector<Fleet> fs, int start)
       }
     }
 
-    for (vector<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
+    for (list<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
       if (f->destinationPlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == i ) {
         participants[f->owner()] += f->shipsCount();
-      }
-      if (f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start -i == this->distance(f->destinationPlanet())){
+        f = fs.erase(f);
+        if(f == fs.end())
+            break;
+      } else if ( f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start -i == this->distance(f->destinationPlanet())){
         participants[f->owner()] -= f->shipsCount();
+        f = fs.erase(f);
+        if(f == fs.end())
+            break;
       }
      }
     
@@ -262,7 +272,10 @@ bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_nod
 float Planet::GetCost( Planet &successor )
 {
   float dist = (float) this->distance(&successor);
-	return (float) dist*sqrt(dist);
-
+  if(dist < 4){
+    return dist;
+  } else {
+    return (float) dist*max(float(1),log(dist));
+  }
 }
 

@@ -6,6 +6,7 @@
 #include "planet.h"
 #include "knapsackTarget.h"
 #include <vector>
+#include <list>
 #include <map>
 
 class MyBot : public AbstractBot
@@ -35,29 +36,33 @@ public:
     int lookahead;
     bool logging;
 
+    void logOrders(const Orders& os);
 
     //action finding:
     void openingTurn();
     vector<KnapsackTarget> knapsack01(const vector<KnapsackTarget>& planets, int maxWeight) const;
     bool chooseAction();
-    void addOrderCandidates(Planet* source, Orders& orderCandidates);
-    int value(Order* oit);
+    void addOrderCandidates(Planet* source1, Planet* source2, vector<Orders>& orderCandidates);
+    int value(const Orders& os, bool worstcase = false);
     int value(const std::vector<Planet>& predictions) const;
     void supply();
     int supplyMove(Planet* pl, Planet* goal);
     void setExpansionTargets();
     void panic();
+    int potential(Planet* pl);
+    Orders optimizeOrders(const Orders& o);
+    list<Fleet> ordersToFleets(const Orders& os);
 
-    
+
     //predictions:
     void updatePredictions();
     std::map<Planet*, std::vector<Planet > > predictions;
     std::map<Planet*, std::vector<Planet > > competitivePredictions;
     std::map<Planet*, std::vector<Planet > > worstCasePredictions;
-    std::map<Planet*, std::vector<Fleet > > maxOutgoingFleets;
-    vector<Fleet> computeMaxOutgoingFleets(Planet* pl);
-    std::vector<Fleet> competitiveFleets(Planet* pl);
-    std::vector<Fleet> worstCaseFleets(Planet* pl);
+    std::map<Planet*, std::list<Fleet > > maxOutgoingFleets;
+    list<Fleet> computeMaxOutgoingFleets(Planet* pl);
+    std::list<Fleet> competitiveFleets(Planet* pl);
+    std::list<Fleet> worstCaseFleets(Planet* pl);
     int willHoldFor(const vector<Planet>& predictions, int t) const;
     int shipsAvailable(const vector<Planet>& predictions, int t) const;
     int myPredictedGrowth;
@@ -78,11 +83,11 @@ public:
     Planet* nearestEnemyPlanet(Planet* pl) const;
     Planet* nearestFriendlyPlanet(Planet* pl) const;
     Planet* coveredBy(Planet* pl, Planet* from) const;
-    int potential(Planet* pl) const;
     Planets cluster(Planet* pl) const;
     bool willHoldAtSomePoint(const vector<Planet>& preds) const;
 
     void issueOrder(Order o, string reason);
+    void issueOrders(const Orders& os);
 };
 
 #endif // MY_BOT_H

@@ -5,6 +5,8 @@
 #include "point2d.h"
 #include "stlastar.h"
 
+#include <list>
+
 class Planet {
     friend class Game;
 public:
@@ -12,7 +14,7 @@ public:
     Planet(int planetID, int shipsCount, int growthRate, Point coordinate, const Player* owner);
     Planet();
 
-    std::vector<Planet> getPredictions(int t, std::vector<Fleet> fs, int start = 0);
+    std::vector<Planet> getPredictions(int t, std::list<Fleet> fs, int start = 0);
     std::vector<Planet> getPredictions(int t, int start = 0);
     int planetID() const;
     int shipsCount() const;
@@ -46,6 +48,7 @@ public:
 
     bool frontierStatus;
     bool predictedMine;
+    bool predictedEnemy;
 
     int shipsCount_m;
     Fleets incomingFleets_m;

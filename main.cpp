@@ -30,7 +30,7 @@ int main() {
 
                 myBot.executeTurn();
                 game.finishTurn();
-
+//                if(game.turn()>100) break; //for profiling
                 mapData = "";
             }
             else {
