@@ -18,15 +18,19 @@ Fleet::Fleet(const Order& order) :
     owner_m(order.sourcePlanet->owner()),
     sourcePlanet_m(order.sourcePlanet),
     destinationPlanet_m(order.destinationPlanet),
-    shipsCount_m(order.shipsCount),
-    tripLenght_m(Point::distanceBetween(sourcePlanet_m->coordinate(), destinationPlanet_m->coordinate())),
-    turnsRemaining_m(tripLenght_m)
+    shipsCount_m(order.shipsCount)
 {
+    tripLenght_m = Point::distanceBetween(sourcePlanet_m->coordinate(), destinationPlanet_m->coordinate());
+    turnsRemaining_m = tripLenght_m;
 }
 
 Fleet::Fleet(const Player* owner, uint sc):
   owner_m(owner),
-  shipsCount_m(sc)
+  shipsCount_m(sc),
+  turnsRemaining_m(0),
+  sourcePlanet_m(0),
+  tripLenght_m(0),
+  destinationPlanet_m(0)
 {
 }
 

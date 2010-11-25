@@ -102,105 +102,106 @@ void Planet::clearFleets()
 
 int Planet::distance(const Planet* p)
 {
-  return Point::distanceBetween(coordinate(),p->coordinate());
+    return Point::distanceBetween(coordinate(),p->coordinate());
 }
 
 //returns the minimum distance to a set of planets
 int Planet::distance(const Planets& ps)
 {
-  int dist = this->distance(this->closestPlanets_m.back());
-  for(Planets::const_iterator pit = ps.begin(); pit != ps.end(); ++pit){
-    dist = min(dist, this->distance(*pit));
-  }
-  return dist;
+    int dist = this->distance(this->closestPlanets_m.back());
+    for(Planets::const_iterator pit = ps.begin(); pit != ps.end(); ++pit){
+        dist = min(dist, this->distance(*pit));
+    }
+    return dist;
 }
 
 vector<Planet> Planet::getPredictions(int t, int start)
 {
-  list<Fleet> fs;
-  return getPredictions(t, fs, start);
+    list<Fleet> fs;
+    return getPredictions(t, fs, start);
 }
 
 vector <Planet> Planet::getPredictions(int t, list<Fleet> fs, int start) 
 {
-  vector<Planet> predictions;
-  Planet p(*this);
-  for (list<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
-    if (f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == this->distance(f->destinationPlanet())){
-      p.shipsCount_m -= f->shipsCount();
-      f = fs.erase(f);
-      if(f==fs.end())
-          break;
-    }
-  }
-  predictions.push_back(p);
-
-  for(int i(1);i!=t+1;i++){
-    if(!p.owner_m->isNeutral()){
-      p.shipsCount_m += p.growthRate_m;
-    }
-    std::map<const Player*,int> participants;
-    participants[p.owner_m] = p.shipsCount_m;
-    
-    for (Fleets::iterator it = incomingFleets_m.begin(); it != incomingFleets_m.end(); ++it ) {
-      Fleet* f = *it;
-      if (f->turnsRemaining() - start == i ) {
-        participants[f->owner()] += f->shipsCount();
-      }
-    }
-
+    vector<Planet> predictions;
+    Planet p(*this);
     for (list<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
-      if (f->destinationPlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == i ) {
-        participants[f->owner()] += f->shipsCount();
-        f = fs.erase(f);
-        if(f == fs.end())
-            break;
-      } else if ( f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start -i == this->distance(f->destinationPlanet())){
-        participants[f->owner()] -= f->shipsCount();
-        f = fs.erase(f);
-        if(f == fs.end())
-            break;
-      }
-     }
-    
-    
-
-    Fleet winner(0, 0);
-    Fleet second(0, 0);
-    for (std::map<const Player*,int>::iterator f = participants.begin(); f != participants.end(); ++f) {
-      if (f->second > second.shipsCount()) {
-        if(f->second > winner.shipsCount()) {
-          second = winner;
-          winner = Fleet(f->first, f->second);
-        } else {
-          second = Fleet(f->first, f->second);
+        if (f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == this->distance(f->destinationPlanet())){
+            p.shipsCount_m -= f->shipsCount();
+            f = fs.erase(f);
+            if(f==fs.end())
+                break;
         }
-      }
-    }
- 
-    if (winner.shipsCount() > second.shipsCount()) {
-      p.shipsCount_m = winner.shipsCount() - second.shipsCount();
-      p.owner_m = winner.owner();
-    } else {
-      p.shipsCount_m = 0;
     }
     predictions.push_back(p);
-  }
-  return predictions;
+
+    for(int i(1);i!=t+1;i++){
+        if(!p.owner_m->isNeutral()){
+            p.shipsCount_m += p.growthRate_m;
+        }
+        std::map<const Player*,int> participants;
+        participants[p.owner_m] = p.shipsCount_m;
+    
+        for (Fleets::iterator it = incomingFleets_m.begin(); it != incomingFleets_m.end(); ++it ) {
+            Fleet* f = *it;
+            int tr = f->turnsRemaining();
+            if (tr - start == i ) {
+                participants[f->owner()] += f->shipsCount();
+            }
+        }
+
+        for (list<Fleet>::iterator f = fs.begin(); f != fs.end(); ++f ) {
+            if (f->destinationPlanet()->planetID() == this->planetID() && f->turnsRemaining() - start == i ) {
+                participants[f->owner()] += f->shipsCount();
+                f = fs.erase(f);
+                if(f == fs.end())
+                    break;
+            } else if ( f->sourcePlanet()->planetID() == this->planetID() && f->turnsRemaining() - start -i == this->distance(f->destinationPlanet())){
+                participants[f->owner()] -= f->shipsCount();
+                f = fs.erase(f);
+                if(f == fs.end())
+                    break;
+            }
+        }
+    
+    
+
+        Fleet winner(0, 0);
+        Fleet second(0, 0);
+        for (std::map<const Player*,int>::iterator f = participants.begin(); f != participants.end(); ++f) {
+            if (f->second > second.shipsCount()) {
+                if(f->second > winner.shipsCount()) {
+                    second = winner;
+                    winner = Fleet(f->first, f->second);
+                } else {
+                    second = Fleet(f->first, f->second);
+                }
+            }
+        }
+ 
+        if (winner.shipsCount() > second.shipsCount()) {
+            p.shipsCount_m = winner.shipsCount() - second.shipsCount();
+            p.owner_m = winner.owner();
+        } else {
+            p.shipsCount_m = 0;
+        }
+        predictions.push_back(p);
+    }
+    return predictions;
 }
 
 //if the planet is conquered NOW, how long will it take to pay back lost ships + 20 ships? Meant to be used on future versions of the planet.
 int Planet::timeToPayoff() const
 {
-  if (growthRate() == 0){
-    return 1000;
-  }
-  int debt = 60;
-  if(!owner_m->isEnemy()){
-    debt += shipsCount_m;
-  }
-  int payoff_time = debt / growthRate();
-  return payoff_time;
+    if (growthRate() == 0){
+        return 1000;
+    }
+    int debt = 60;
+    if(!owner_m->isEnemy()){
+        debt += shipsCount_m;
+    }
+    int payoff_time = debt / growthRate();
+    return payoff_time;
 }
 
 
@@ -258,10 +259,10 @@ bool Planet::IsGoal( Planet &nodeGoal )
 bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_node )
 {
 
-  for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
-    Planet* p = *pit;
-    if(p->owner()->isMe() || p->predictedMine || p->frontierStatus) astarsearch->AddSuccessor(**pit);
-  }
+    for(Planets::iterator pit = closestPlanets_m.begin(); pit != closestPlanets_m.end(); ++pit){
+        Planet* p = *pit;
+        if(p->owner()->isMe() || p->predictedMine || p->frontierStatus) astarsearch->AddSuccessor(**pit);
+    }
 	return true;
 }
 
@@ -271,11 +272,11 @@ bool Planet::GetSuccessors( AStarSearch<Planet> *astarsearch, Planet *parent_nod
 
 float Planet::GetCost( Planet &successor )
 {
-  float dist = (float) this->distance(&successor);
-  if(dist < 4){
-    return dist;
-  } else {
-    return (float) dist*max(float(1),log(dist));
-  }
+    float dist = (float) this->distance(&successor);
+    if(dist < 4){
+        return dist;
+    } else {
+        return (float) dist*max(float(1),log(dist));
+    }
 }
 

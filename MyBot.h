@@ -8,6 +8,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <sys/time.h>
 
 class MyBot : public AbstractBot
 {
@@ -88,6 +89,11 @@ public:
 
     void issueOrder(Order o, string reason);
     void issueOrders(const Orders& os);
+    
+    timeval tim;
+    double t1;
+    double t2;
+    double maxTime;
 };
 
 #endif // MY_BOT_H

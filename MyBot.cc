@@ -29,6 +29,7 @@
 #include "planet.h"
 #include "player.h"
 #include "knapsackTarget.h"
+#include "sys/time.h"
 
 using std::min;
 using std::max;
@@ -39,17 +40,21 @@ using std::endl;
 
 MyBot::MyBot(Game* game) :
     AbstractBot(game),
-    logging(true)
+    logging(false),
+    maxTime(0.8)
 {
 }
 
 
 //the entry function, this is called by the game engine
 void MyBot::executeTurn() {
+    gettimeofday(&tim, NULL);
+    t1=tim.tv_sec+(tim.tv_usec/1000000.0);
     if(logging){
         cerr << "#########################################" << endl;
         cerr << "Turn: " << game->turn() << endl;
     }
+
   
     if (game->turn() == 1) {
         initialize();
@@ -71,11 +76,16 @@ void MyBot::executeTurn() {
 
 
 
-    //this prevents timeouts caused by a certain bug in the game engine:
     if (myPlanets.size() == 0 || enemyPlanets.size() ==0) { 
+        if(logging){
+            cerr << "turn finished, someone has no planets:" << myPlanets.size() << ", " << enemyPlanets.size() <<  endl;
+        }
         return;
     } 
 
+    //sent available ships towards the frontier
+    supply();
+    updatePredictions();
 
     const int maxActions = 5;
     for(int actions(0); actions != maxActions; ++actions) {
@@ -105,8 +115,7 @@ void MyBot::executeTurn() {
         panic();
         updatePredictions();
     }
-    //sent available ships towards the frontier
-    supply();
+
 
 
 
@@ -314,15 +323,23 @@ bool MyBot::chooseAction() {
     if(logging){
         cerr << "started chooseAction..." << endl;
     }
+    gettimeofday(&tim, NULL);
+    double t2=tim.tv_sec+(tim.tv_usec/1000000.0);
+    if((t2-t1)>maxTime*0.7)
+        return false;
+
+    updatePredictions();
     vector<Orders> orderCandidates;
     for(Planets::const_iterator p1 = myPlanets.begin(); p1!= myPlanets.end(); ++p1) {
         Planet* source1 = *p1;
         int i(0);
-        for(Planets::const_iterator p2 = myPlanets.begin(); p2!= myPlanets.end() && i<10; ++p2) {
-            Planet* source2 = *p2;
-            if(source1->planetID() <= source2->planetID()){
-                addOrderCandidates(source1, source2, orderCandidates);
-                ++i;
+        if(source1->shipsCount() > 0 && source1->frontierStatus){
+            for(Planets::const_iterator p2 = myPlanets.begin(); p2!= myPlanets.end() && i<10; ++p2) {
+                Planet* source2 = *p2;
+                if(source2->shipsCount() > 0 && source2->frontierStatus && source1->planetID() <= source2->planetID()){
+                    addOrderCandidates(source1, source2, orderCandidates);
+                    ++i;
+                }
             }
         }
     }
@@ -333,6 +350,10 @@ bool MyBot::chooseAction() {
     int maxValue = 0;
     Orders* maxOrders(0);
     for(vector<Orders>::iterator oit = orderCandidates.begin(); oit != orderCandidates.end(); ++oit) {
+        gettimeofday(&tim, NULL);
+        double t2=tim.tv_sec+(tim.tv_usec/1000000.0);
+        if((t2-t1)>maxTime*0.7)
+            return false;
         Orders* o=&*oit;
         int newValue = value(*o, false);
         if(logging){
@@ -421,6 +442,10 @@ Orders MyBot::optimizeOrders(const Orders& os){
     }
     for(int i(0); i <= divs1; ++i){
         for(int j(0); j <= divs2 ; ++j){
+            gettimeofday(&tim, NULL);
+            double t2=tim.tv_sec+(tim.tv_usec/1000000.0);
+            if((t2-t1)>maxTime*0.7)
+                return osMax;
             Orders ovec;
             ovec.push_back(Order(source1, dest, divs1>0 ? (i * sa1) / divs1 : 0));
             ovec.push_back(Order(source2, dest, divs2>0 ? (j * sa1) / divs2 : 0));
@@ -543,9 +568,13 @@ void MyBot::addOrderCandidates(Planet* source1, Planet* source2, vector<Orders>&
         shipsAvailableStatic2 = source2->shipsCount();
     }
     for(Planets::const_iterator p = planets.begin(); p!= planets.end(); ++p) {
+        gettimeofday(&tim, NULL);
+        double t2=tim.tv_sec+(tim.tv_usec/1000000.0);
+        if((t2-t1)>maxTime*0.7)
+            return;
         Planet* destination = *p;
         int dist = max(source1->distance(destination), source2->distance(destination));
-        if(destination != source1 && destination != source2 && dist <= turnsRemaining && dist <= maxDistanceBetweenPlanets / 2 && abs(source1->distance(destination)-source2->distance(destination)) < maxDistanceBetweenPlanets / 4 && !(destination->owner()->isMe() && predictions[destination][lookahead].owner()->isMe()) && !(me->growthRate() > enemy->growthRate() && myPredictedGrowth > enemyPredictedGrowth && destination->owner()->isNeutral() && predictions[destination][lookahead].owner()->isNeutral())){
+        if(destination != source1 && destination != source2 && dist <= turnsRemaining && dist <= maxDistanceBetweenPlanets / 2 && abs(source1->distance(destination)-source2->distance(destination)) < maxDistanceBetweenPlanets / 4 && !(destination->owner()->isMe() && predictions[destination][lookahead].owner()->isMe()) && !(me->growthRate() > enemy->growthRate() && myPredictedGrowth > enemyPredictedGrowth && destination->owner()->isNeutral() && predictions[destination][lookahead].owner()->isNeutral()) && !(destination->owner()->isNeutral() && predictions[destination][dist].owner()->isNeutral() && predictions[destination][dist].shipsCount() >= destination->growthRate()*(turnsRemaining - dist))){
             int shipsAvailableCompetitive1 = shipsAvailable(competitivePredictions[source1], dist*2);
             int shipsAvailableCompetitive2 = shipsAvailable(competitivePredictions[source2], dist*2);
             if (max(shipsAvailableStatic1, shipsAvailableCompetitive1)>0 && max(shipsAvailableStatic2, shipsAvailableCompetitive2)>0) {
@@ -637,6 +666,10 @@ list<Fleet> MyBot::ordersToFleets(const Orders& os){
 }
 
 int MyBot::value(const Orders& os, bool worstcase){
+    gettimeofday(&tim, NULL);
+    double t2=tim.tv_sec+(tim.tv_usec/1000000.0);
+    if((t2-t1)>maxTime*0.7)
+        return 0;
     set<Planet*> sources;
     for(Orders::const_iterator oit = os.begin(); oit != os.end(); ++oit){
         sources.insert(oit->sourcePlanet);
@@ -645,6 +678,7 @@ int MyBot::value(const Orders& os, bool worstcase){
     list<Fleet> fs(ordersToFleets(os));
     int baseValue(0);
     int dist(0);
+
     for(set<Planet*>::const_iterator pit = sources.begin(); pit != sources.end(); ++pit){
         Planet* p = *pit;
         dist = max(dist, destination->distance(p));
@@ -652,8 +686,6 @@ int MyBot::value(const Orders& os, bool worstcase){
     }
 
     baseValue += value(predictions[destination]);
-
-
 
    
     if (predictions[destination][dist].owner()->isNeutral()) {  //some tougher payoff conditions for neutral planets
@@ -666,15 +698,19 @@ int MyBot::value(const Orders& os, bool worstcase){
                     break;
             }
         } 
-        wfsDest.insert(wfsDest.end(), fs.begin(), fs.end());
         for(set<Planet*>::const_iterator pit = sources.begin(); pit != sources.end(); ++pit){
             Planet* p = *pit;
+            uint dist2(p->distance(destination));
+            uint i(0);
             for(list<Fleet>::const_iterator fit = maxOutgoingFleets[p].begin(); fit != maxOutgoingFleets[p].end(); ++fit){
                 if(fit->owner()->isMe() && fit != maxOutgoingFleets[p].begin()){
-                    wfsDest.push_back(*fit);
+                    Fleet f(Fleet(fit->owner(), p, destination, fit->shipsCount(), dist2 + i, dist2 + i));
+                    wfsDest.push_back(f);
                 }
+                ++i;
             }
         }
+
         //a neutral planet has to pay off even in the close-to worst case:
         vector<Planet> preds = destination->getPredictions(lookahead,wfsDest);
         int whf = willHoldFor(preds, dist)*destination->growthRate();
