@@ -83,9 +83,8 @@ void MyBot::executeTurn() {
         return;
     } 
 
-    //sent available ships towards the frontier
-    supply();
-    updatePredictions();
+
+
 
     const int maxActions = 5;
     for(int actions(0); actions != maxActions; ++actions) {
@@ -97,6 +96,8 @@ void MyBot::executeTurn() {
 
 
     updatePredictions();
+    //sent available ships towards the frontier
+    supply();
 
     if(logging){
         cerr << "checking for bad situation" << endl;
@@ -333,10 +334,10 @@ bool MyBot::chooseAction() {
     for(Planets::const_iterator p1 = myPlanets.begin(); p1!= myPlanets.end(); ++p1) {
         Planet* source1 = *p1;
         int i(0);
-        if(source1->shipsCount() > 0 && source1->frontierStatus){
+        if(source1->shipsCount() > 0){
             for(Planets::const_iterator p2 = myPlanets.begin(); p2!= myPlanets.end() && i<10; ++p2) {
                 Planet* source2 = *p2;
-                if(source2->shipsCount() > 0 && source2->frontierStatus && source1->planetID() <= source2->planetID()){
+                if(source2->shipsCount() > 0 && source1->planetID() <= source2->planetID()){
                     addOrderCandidates(source1, source2, orderCandidates);
                     ++i;
                 }
