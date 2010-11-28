@@ -1,20 +1,3 @@
-/* 
-   Author: Moritz Gronbach
-   Oct2010
-   Main file for my Planet Wars bot for the Google AI Challenge
-   General Architecture:
-   A filtered list of possible orders is created. Only targets with certain properties, depending on the situation, are allowed. The best order according to a simple heuristic is chosen (see value()). The evaluation of an order takes into account current fleet movements. 
-   This process is repeated maxActions times.
-   Once this is done, the ships that are currently on planets and not needed for defense are sent towards the frontline.
-   The most critical areas for performance are:
-   1. the decision what constitutes a valid target
-   2. the degree of aggression in the frontier-planet selection 
-   3. precision of calculating ships needed to conquer neutral planets
-
-   TODO:
-   -remake parts of the frontier mechanic
-*/
-
 #include "MyBot.h"
 
 #include <algorithm>
@@ -41,7 +24,7 @@ using std::endl;
 MyBot::MyBot(Game* game) :
     AbstractBot(game),
     logging(false),
-    maxTime(0.8)
+    maxTime(1.0)
 {
 }
 
